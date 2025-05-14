@@ -1,46 +1,52 @@
-# Getting Started with Create React App
+# Application de Suivi de Maintenance des Véhicules
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Cette application permet de suivre et d'enregistrer les opérations de maintenance sur les véhicules de train.
 
-## Available Scripts
+## Fonctionnalités
 
-In the project directory, you can run:
+- Sélection d'un véhicule parmi les 12 disponibles
+- Affichage du plan du véhicule sélectionné
+- Ajout de points d'enregistrement en cliquant sur le plan
+- Sélection du système et de l'opération pour chaque enregistrement
+- Accès aux protocoles et fiches de traçabilité
 
-### `npm start`
+## Installation
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+1. Cloner le dépôt
+2. Installer les dépendances :
+```bash
+npm install
+```
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+3. Démarrer l'application en mode développement :
+```bash
+npm start
+```
 
-### `npm test`
+## Structure des dossiers
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- `/public/images` : Contient les plans des véhicules
+- `/public/protocols` : Contient les protocoles PDF
+- `/public/traceability` : Contient les fiches de traçabilité PDF
+- `/src/components` : Composants React
+- `/src/config` : Configuration des systèmes et opérations
+- `/src/types` : Types TypeScript
 
-### `npm run build`
+## Déploiement
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Pour déployer l'application en production :
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. Construire l'application :
+```bash
+npm run build
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+2. Déployer le contenu du dossier `build` sur votre serveur web
 
-### `npm run eject`
+## Configuration
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Les systèmes et opérations sont configurés dans le fichier `src/config/operations.ts`. Vous pouvez ajouter ou modifier les opérations selon vos besoins.
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Support
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+Pour toute question ou problème, veuillez contacter l'équipe de support.

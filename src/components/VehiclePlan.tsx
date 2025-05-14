@@ -1,0 +1,1296 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Button,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  SelectChangeEvent,
+  IconButton,
+  TextField,
+  Tooltip,
+  CircularProgress,
+  Tabs,
+  Tab,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Popover
+} from '@mui/material';
+import { Vehicle, System, MaintenanceRecord } from '../types/index';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { useMsal } from '@azure/msal-react';
+import { MaintenanceService } from '../services/maintenanceService';
+import { useMsalAuthentication } from '@azure/msal-react';
+import * as XLSX from 'xlsx';
+import SearchIcon from '@mui/icons-material/Search';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { fr } from 'date-fns/locale';
+import AddIcon from '@mui/icons-material/Add';
+
+interface VehiclePlanProps {
+  vehicle: Vehicle;
+  systems: System[];
+  t: {
+    history: string;
+    addRecord: string;
+    system: string;
+    operation: string;
+    date: string;
+    comment: string;
+    actions: string;
+    noRecord: string;
+    edit: string;
+    delete: string;
+    cancel: string;
+    update: string;
+    save: string;
+    confirmDeleteTitle: string;
+    confirmDeleteText: string;
+  };
+}
+
+interface PdfViewerSharepointProps {
+  operationCode: string;
+  type: 'protocole' | 'tracabilite';
+  onBack: () => void;
+  setStatus?: (status: 'en cours' | 'terminé') => void;
+  currentStatus?: 'non commencé' | 'en cours' | 'terminé';
+  setTab?: (tab: number) => void;
+}
+function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentStatus, setTab }: PdfViewerSharepointProps) {
+  const { instance, accounts } = useMsal();
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [excelUrl, setExcelUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [excelData, setExcelData] = useState<any[][] | null>(null);
+
+  const getAccessToken = async () => {
+    if (!accounts || accounts.length === 0) {
+      throw new Error("Aucun compte connecté");
+    }
+    const response = await instance.acquireTokenSilent({
+      scopes: [
+        'Files.Read.All',
+        'Sites.Read.All',
+        'Files.ReadWrite.All',
+        'Sites.ReadWrite.All',
+        'Sites.ReadWrite.All'
+      ],
+      account: accounts[0],
+    });
+    return response.accessToken;
+  };
+
+  const fetchUrl = async () => {
+    setLoading(true);
+    setError('');
+    setObjectUrl(null);
+    setExcelUrl(null);
+    try {
+      const token = await getAccessToken();
+      const SHAREPOINT_SITE_ID = 'arlingtonfleetfrance.sharepoint.com,3d42766f-7bce-4b8e-92e0-70272ae2b95e,cfa621f3-5013-433c-9d14-3c519f11bb8d';
+      const SHAREPOINT_DRIVE_ID = 'b!b3ZCPc57jkuS4HAnKuK5XvMhps8TUDxDnRQ8UZ8Ru426aMo8mBCBTrOSBU5EbQE4';
+      const SHAREPOINT_FOLDER_ID = '01UIJT6YJKMFDSJS4PPJDKVHBTW3MXZ5DO';
+      const res = await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/root:/AFF-Projets/Le Grand Tour/Etude Maintenance/40.DOCUMENTATION/44-Signature:/children`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await res.json();
+      let file;
+      if (type === 'protocole') {
+        file = (data.value as any[]).find((f: any) =>
+          f.name.startsWith(operationCode + '-') && f.name.endsWith('.pdf') && f.name.toLowerCase().includes('protocole')
+        );
+        if (!file) {
+          file = (data.value as any[]).find((f: any) =>
+            f.name.startsWith(operationCode + '-') && f.name.endsWith('.pdf')
+          );
+        }
+        if (file && file['@microsoft.graph.downloadUrl']) {
+          setPdfUrl(file['@microsoft.graph.downloadUrl']);
+          const pdfBlob = await fetch(file['@microsoft.graph.downloadUrl']);
+          const blob = await pdfBlob.blob();
+          const url = URL.createObjectURL(blob);
+          setObjectUrl(url);
+        } else {
+          setError('protocole non disponible');
+        }
+      } else {
+        // Nouvelle logique de recherche plus souple
+        file = (data.value as any[]).find((f: any) =>
+          f.name === `FT-LGT-${operationCode}.xlsx`
+        );
+        if (!file) {
+          file = (data.value as any[]).find((f: any) =>
+            f.name.includes(operationCode) && f.name.endsWith('.xlsx')
+          );
+        }
+        
+        if (file && file['@microsoft.graph.downloadUrl']) {
+          // Télécharger le fichier Excel, lire avec SheetJS et stocker les données
+          const excelBlob = await fetch(file['@microsoft.graph.downloadUrl']);
+          const arrayBuffer = await excelBlob.arrayBuffer();
+          const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          setExcelData(data as any[][]);
+        } else {
+          setError('fiche de traçabilité non disponible');
+        }
+      }
+    } catch (e) {
+      console.error('Erreur lors de la récupération du document:', e);
+      setError('Erreur lors de la récupération du document.');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchUrl();
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+    // eslint-disable-next-line
+  }, [operationCode, type]);
+
+  useEffect(() => {
+    if (excelUrl) {
+      console.log('Tentative d\'affichage de l\'Excel avec l\'URL:', excelUrl);
+    }
+  }, [excelUrl]);
+
+  return (
+    <Dialog open onClose={onBack} maxWidth="xl" fullWidth>
+      <DialogTitle>
+        <Button onClick={onBack} variant="outlined">Fermer</Button>
+      </DialogTitle>
+      <DialogContent sx={{ p: 0 }}>
+        {loading && (
+          <Box sx={{ color: 'text.primary', fontSize: 24, textAlign: 'center', mt: 10 }}>Chargement…</Box>
+        )}
+        {!loading && type === 'tracabilite' && (
+          excelData ? (
+            <Box>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 2 }}>
+                <Button
+                  variant={currentStatus === 'en cours' ? 'contained' : 'outlined'}
+                  color="warning"
+                  onClick={async () => {
+                    if (setStatus) {
+                      await setStatus('en cours');
+                      if (setTab) setTab(0);
+                      onBack();
+                    }
+                  }}
+                >
+                  Sauvegarder (en cours)
+                </Button>
+                <Button
+                  variant={currentStatus === 'terminé' ? 'contained' : 'outlined'}
+                  color="success"
+                  onClick={async () => {
+                    if (setStatus) {
+                      await setStatus('terminé');
+                      if (setTab) setTab(0);
+                      onBack();
+                    }
+                  }}
+                >
+                  Terminer
+                </Button>
+              </Box>
+              <Box sx={{ overflow: 'auto', maxHeight: 800 }}>
+                <Table>
+                  <TableBody>
+                    {excelData.map((row, i) => (
+                      <TableRow key={i}>
+                        {row.map((cell, j) => (
+                          <TableCell key={j}>{cell}</TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+            </Box>
+          ) : (
+            <Box sx={{ color: 'red', fontWeight: 'bold', fontSize: '1.1rem', mt: 10, textAlign: 'center' }}>
+              fiche de traçabilité non disponible
+            </Box>
+          )
+        )}
+        {!loading && type === 'protocole' && (
+          objectUrl ? (
+            <iframe
+              src={objectUrl}
+              title={operationCode + '-' + type}
+              width="100%"
+              height="800px"
+              style={{ border: 'none' }}
+              allowFullScreen
+            />
+          ) : (
+            <Box sx={{ color: 'red', fontWeight: 'bold', fontSize: '1.1rem', mt: 10, textAlign: 'center' }}>
+              protocole non disponible
+            </Box>
+          )
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface ViewerModalProps {
+  url: string;
+  onBack: () => void;
+  recordId?: string;
+  setStatus?: (status: 'en cours' | 'terminé') => void;
+  currentStatus?: 'non commencé' | 'en cours' | 'terminé';
+}
+function ViewerModal({ url, onBack, recordId, setStatus, currentStatus }: ViewerModalProps) {
+  return (
+    <Dialog open onClose={onBack} maxWidth="xl" fullWidth>
+      <DialogTitle>
+        <Button onClick={onBack} variant="outlined">Fermer</Button>
+        {setStatus && (
+          <span style={{ float: 'right', display: 'flex', gap: 8 }}>
+            <Button
+              variant={currentStatus === 'en cours' ? 'contained' : 'outlined'}
+              color="warning"
+              onClick={() => setStatus('en cours')}
+              sx={{ ml: 2 }}
+            >
+              Sauvegarder (en cours)
+            </Button>
+            <Button
+              variant={currentStatus === 'terminé' ? 'contained' : 'outlined'}
+              color="success"
+              onClick={() => setStatus('terminé')}
+              sx={{ ml: 1 }}
+            >
+              Terminer
+            </Button>
+          </span>
+        )}
+      </DialogTitle>
+      <DialogContent sx={{ p: 0 }}>
+        <iframe src={url} title={url} width="100%" height="800px" style={{ border: 'none' }} />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const CONSISTANCES = [
+  { id: 'IS710', name: 'IS710' }
+];
+
+// Liste des véhicules (à adapter selon ta structure)
+const VEHICLES: Vehicle[] = [
+  { id: 1, name: 'Véhicule 1', planImage: '' },
+  { id: 2, name: 'Véhicule 2', planImage: '' },
+  { id: 3, name: 'Véhicule 3', planImage: '' },
+  { id: 4, name: 'Véhicule 4', planImage: '' },
+  { id: 5, name: 'Véhicule 5', planImage: '' },
+  { id: 6, name: 'Véhicule 6', planImage: '' },
+  { id: 7, name: 'Véhicule 7', planImage: '' },
+  { id: 8, name: 'Véhicule 8', planImage: '' },
+  { id: 9, name: 'Véhicule 9', planImage: '' },
+  { id: 10, name: 'Véhicule 10', planImage: '' },
+  { id: 11, name: 'Véhicule 11', planImage: '' },
+  { id: 12, name: 'Véhicule 12', planImage: '' },
+];
+
+// Ajout du type pour un système local
+interface LocalSystem {
+  id: string;
+  name: string;
+  operations: { id: string; name: string }[];
+}
+
+// Système de traduction (français/anglais)
+const translations = {
+  fr: {
+    history: "Historique",
+    addRecord: "Ajouter un enregistrement",
+    system: "Système",
+    operation: "Opération",
+    date: "Date",
+    comment: "Commentaire",
+    actions: "Actions",
+    noRecord: "Aucun enregistrement",
+    edit: "Modifier",
+    delete: "Supprimer",
+    cancel: "Annuler",
+    update: "Mettre à jour",
+    save: "Enregistrer",
+    confirmDeleteTitle: "Confirmation de suppression",
+    confirmDeleteText: "Voulez-vous vraiment supprimer cet enregistrement ?",
+    chooseConsistency: "Choisissez une consistance",
+    chooseVehicle: "Choisissez un véhicule",
+    currentConsistency: "Consistance actuelle",
+    addSystem: "Ajouter un système",
+    addOperation: "Ajouter opération",
+    add: "Ajouter",
+    removeSystem: "Supprimer système",
+    removeOperation: "Supprimer",
+    startMaintenance: "Commencer la maintenance",
+    openProtocol: "Ouvrir le protocole SharePoint",
+    openTraceability: "Ouvrir la fiche de traçabilité",
+    protocolUnavailable: "protocole non disponible",
+    traceabilityUnavailable: "fiche de traçabilité non disponible",
+    loading: "Chargement…",
+    back: "← Retour",
+    user: "Utilisateur",
+    status: "Statut de la fiche de traçabilité",
+    allStatus: "Tous les statuts",
+    notStarted: "Non commencé",
+    inProgress: "En cours",
+    done: "Terminé"
+  },
+  en: {
+    history: "History",
+    addRecord: "Add record",
+    system: "System",
+    operation: "Operation",
+    date: "Date",
+    comment: "Comment",
+    actions: "Actions",
+    noRecord: "No record",
+    edit: "Edit",
+    delete: "Delete",
+    cancel: "Cancel",
+    update: "Update",
+    save: "Save",
+    confirmDeleteTitle: "Delete confirmation",
+    confirmDeleteText: "Do you really want to delete this record?",
+    chooseConsistency: "Choose a consistency",
+    chooseVehicle: "Choose a vehicle",
+    currentConsistency: "Current consistency",
+    addSystem: "Add system",
+    addOperation: "Add operation",
+    add: "Add",
+    removeSystem: "Remove system",
+    removeOperation: "Remove",
+    startMaintenance: "Start maintenance",
+    openProtocol: "Open SharePoint protocol",
+    openTraceability: "Open traceability sheet",
+    protocolUnavailable: "protocol not available",
+    traceabilityUnavailable: "traceability sheet not available",
+    loading: "Loading…",
+    back: "← Back",
+    user: "User",
+    status: "Traceability sheet status",
+    allStatus: "All status",
+    notStarted: "Not started",
+    inProgress: "In progress",
+    done: "Done"
+  }
+};
+
+const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
+  const { instance, accounts } = useMsal();
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [selectedConsistency, setSelectedConsistency] = useState<string>('');
+  const [recordsByConsistency, setRecordsByConsistency] = useState<{
+    [cons: string]: { [vehicleId: number]: MaintenanceRecord[] }
+  }>({});
+  const [selectedSystem, setSelectedSystem] = useState<string>('');
+  const [selectedOperation, setSelectedOperation] = useState<string>('');
+  const [comment, setComment] = useState<string>('');
+  const [editingRecord, setEditingRecord] = useState<MaintenanceRecord | null>(null);
+  const [tab, setTab] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{open: boolean, recordId: string|null}>({open: false, recordId: null});
+  const [showPdf, setShowPdf] = useState<{operationId: string|null, type?: 'protocole'|'tracabilite'}>({operationId: null, type: undefined});
+  const [showViewer, setShowViewer] = useState<{url: string|null}>({url: null});
+  const [filters, setFilters] = useState({
+    system: '',
+    operation: '',
+    date: '',
+    comment: '',
+    status: '',
+    user: ''
+  });
+  const [anchorEl, setAnchorEl] = useState<{ [key: string]: HTMLElement | null }>({
+    system: null,
+    operation: null,
+    date: null,
+    comment: null,
+    status: null,
+    user: null
+  });
+  const [dateFilter, setDateFilter] = useState<Date | null>(null);
+  const [addConsDialogOpen, setAddConsDialogOpen] = useState(false);
+  const [newConsName, setNewConsName] = useState('');
+  const [consistencies, setConsistencies] = useState<string[]>(() => {
+    const saved = localStorage.getItem('consistencies');
+    return saved ? JSON.parse(saved) : ['IS710'];
+  });
+  const [localSystems, setLocalSystems] = useState<{ [cons: string]: LocalSystem[] }>(() => {
+    const saved = localStorage.getItem('localSystems');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [sysName, setSysName] = useState('');
+  const [opName, setOpName] = useState('');
+  const [ops, setOps] = useState<{ id: string; name: string }[]>([]);
+  const [showCustomSysForm, setShowCustomSysForm] = useState(false);
+  // Ajout pour formulaire dynamique de systèmes/opérations
+  const [newSystems, setNewSystems] = useState<
+    { id: string, name: string, operations: { id: string, name: string }[] }[]
+  >([]);
+  // État pour l'ajout manuel de système/opérations sur la page principale
+  const [showAddSystemForm, setShowAddSystemForm] = useState(false);
+  const [newSysName, setNewSysName] = useState('');
+  const [newSysOps, setNewSysOps] = useState<{ id: string; name: string }[]>([]);
+  const [newOpName, setNewOpName] = useState('');
+  // Ajout de la gestion de la langue
+  const [lang, setLang] = useState<'fr' | 'en'>('fr');
+  const t = translations[lang];
+
+  const maintenanceService = MaintenanceService.getInstance();
+
+  const userName = accounts && accounts[0] ? (accounts[0].name || accounts[0].username) : 'Inconnu';
+
+  useEffect(() => {
+    const loadRecords = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        if (!accounts || accounts.length === 0) {
+          throw new Error("Aucun compte connecté");
+        }
+        const response = await instance.acquireTokenSilent({
+          scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
+          account: accounts[0],
+        });
+        maintenanceService.setAccessToken(response.accessToken);
+        if (selectedVehicle && selectedConsistency) {
+          const loadedRecords = await maintenanceService.getMaintenanceRecords(selectedConsistency, selectedVehicle.id);
+          setRecordsByConsistency(prev => ({ ...prev, [selectedConsistency]: { ...prev[selectedConsistency], [selectedVehicle.id]: loadedRecords } }));
+        }
+      } catch (err: any) {
+        setError(err.message || 'Erreur lors du chargement des enregistrements');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (selectedVehicle && selectedConsistency) {
+      loadRecords();
+    }
+  }, [selectedVehicle?.id, selectedConsistency, instance, accounts]);
+
+  useEffect(() => {
+    localStorage.setItem('consistencies', JSON.stringify(consistencies));
+  }, [consistencies]);
+
+  useEffect(() => {
+    localStorage.setItem('localSystems', JSON.stringify(localSystems));
+  }, [localSystems]);
+
+  const saveRecords = async (updatedRecords: MaintenanceRecord[]) => {
+    try {
+      if (!accounts || accounts.length === 0) {
+        throw new Error("Aucun compte connecté");
+      }
+      const response = await instance.acquireTokenSilent({
+        scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
+        account: accounts[0],
+      });
+      maintenanceService.setAccessToken(response.accessToken);
+      await maintenanceService.saveMaintenanceRecords(selectedConsistency, selectedVehicle!.id, updatedRecords);
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors de la sauvegarde des enregistrements');
+    }
+  };
+
+  const handleAddOrEdit = async () => {
+    if (selectedSystem && selectedOperation) {
+      let updatedRecords: MaintenanceRecord[];
+      if (editingRecord) {
+        updatedRecords = currentRecords.map(record =>
+          record.id === editingRecord.id 
+            ? { ...record, systemId: selectedSystem, operationId: selectedOperation, comment, user: userName }
+            : record
+        );
+      } else {
+        const newRecord: MaintenanceRecord = {
+          id: Date.now().toString(),
+          vehicleId: selectedVehicle!.id,
+          systemId: selectedSystem,
+          operationId: selectedOperation,
+          position: { x: 0, y: 0 },
+          timestamp: new Date(),
+          comment,
+          user: userName
+        };
+        updatedRecords = [...currentRecords, newRecord];
+      }
+      setCurrentRecords(updatedRecords);
+      await saveRecords(updatedRecords);
+      resetForm();
+      setTab(0);
+    }
+  };
+
+  const handleEditRecord = (record: MaintenanceRecord) => {
+    setEditingRecord(record);
+    setSelectedSystem(record.systemId);
+    setSelectedOperation(record.operationId);
+    setComment(record.comment || '');
+    setTab(1);
+  };
+
+  const handleDeleteRecord = async (recordId: string) => {
+    const updatedRecords = currentRecords.filter(record => record.id !== recordId);
+    setCurrentRecords(updatedRecords);
+    await saveRecords(updatedRecords);
+    setDeleteDialog({open: false, recordId: null});
+  };
+
+  const resetForm = () => {
+    setEditingRecord(null);
+    setSelectedSystem('');
+    setSelectedOperation('');
+    setComment('');
+  };
+
+  const handleSearchClick = (column: string, event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(prev => ({
+      ...prev,
+      [column]: event.currentTarget
+    }));
+  };
+
+  const handleSearchClose = (column: string) => {
+    setAnchorEl(prev => ({
+      ...prev,
+      [column]: null
+    }));
+  };
+
+  const SearchPopover = ({ column, title }: { column: string, title: string }) => (
+    <Popover
+      open={Boolean(anchorEl[column])}
+      anchorEl={anchorEl[column]}
+      onClose={() => handleSearchClose(column)}
+      anchorOrigin={{
+        vertical: 'bottom',
+        horizontal: 'left',
+      }}
+      transformOrigin={{
+        vertical: 'top',
+        horizontal: 'left',
+      }}
+    >
+      <Box sx={{ p: 2 }}>
+        {column === 'status' ? (
+          <Select
+            size="small"
+            value={filters.status}
+            onChange={(e) => setFilters({...filters, status: e.target.value})}
+            fullWidth
+            displayEmpty
+            autoFocus
+          >
+            <MenuItem value="">Tous les statuts</MenuItem>
+            <MenuItem value="non commencé">Non commencé</MenuItem>
+            <MenuItem value="en cours">En cours</MenuItem>
+            <MenuItem value="terminé">Terminé</MenuItem>
+          </Select>
+        ) : column === 'date' ? (
+          <DatePicker
+            value={dateFilter}
+            onChange={(newValue: Date | null) => {
+              setDateFilter(newValue);
+              setFilters({...filters, date: newValue ? newValue.toLocaleDateString() : ''});
+            }}
+            slotProps={{
+              textField: {
+                size: "small",
+                fullWidth: true,
+                autoFocus: true
+              }
+            }}
+          />
+        ) : (
+          <TextField
+            size="small"
+            placeholder={`Rechercher dans ${title}...`}
+            value={filters[column as keyof typeof filters]}
+            onChange={(e) => setFilters({...filters, [column]: e.target.value})}
+            fullWidth
+            autoFocus
+          />
+        )}
+      </Box>
+    </Popover>
+  );
+
+  const currentRecords = (selectedConsistency && selectedVehicle)
+    ? (recordsByConsistency[selectedConsistency]?.[selectedVehicle.id] || [])
+    : [];
+  const setCurrentRecords = (newRecords: MaintenanceRecord[]) => {
+    if (!selectedConsistency || !selectedVehicle) return;
+    setRecordsByConsistency(prev => ({
+      ...prev,
+      [selectedConsistency]: {
+        ...prev[selectedConsistency],
+        [selectedVehicle.id]: newRecords
+      }
+    }));
+  };
+
+  const filteredRecords = currentRecords.filter(record => {
+    const system = systems.find(s => s.id === record.systemId);
+    const operation = system?.operations.find(o => o.id === record.operationId);
+    const recordDate = new Date(record.timestamp);
+    const isDateMatch = !dateFilter ||
+      (recordDate.getDate() === dateFilter.getDate() &&
+        recordDate.getMonth() === dateFilter.getMonth() &&
+        recordDate.getFullYear() === dateFilter.getFullYear());
+    return (
+      (system?.name || '').toLowerCase().includes(filters.system.toLowerCase()) &&
+      (operation?.name || '').toLowerCase().includes(filters.operation.toLowerCase()) &&
+      isDateMatch &&
+      (record.comment || '').toLowerCase().includes(filters.comment.toLowerCase()) &&
+      (record.status || 'non commencé').toLowerCase().includes(filters.status.toLowerCase()) &&
+      (record.user || 'Inconnu').toLowerCase().includes(filters.user.toLowerCase())
+    );
+  });
+
+  const handleSelectConsistency = (cons: string) => {
+    setSelectedConsistency(cons);
+    setSelectedVehicle(null);
+    setRecordsByConsistency(prev => {
+      if (prev[cons]) return prev;
+      const vehObj: { [vehicleId: number]: MaintenanceRecord[] } = {};
+      VEHICLES.forEach(v => { vehObj[v.id] = []; });
+      return { ...prev, [cons]: vehObj };
+    });
+  };
+
+  const currentSystems = selectedConsistency === 'IS710' ? systems : (localSystems[selectedConsistency] || []);
+
+  // Fonctions pour gérer le formulaire dynamique
+  const addSystem = () => {
+    setNewSystems([
+      ...newSystems,
+      { id: Date.now().toString(), name: '', operations: [] }
+    ]);
+  };
+  const removeSystem = (sysId: string) => {
+    setNewSystems(newSystems.filter(sys => sys.id !== sysId));
+  };
+  const updateSystemName = (sysId: string, name: string) => {
+    setNewSystems(newSystems.map(sys =>
+      sys.id === sysId ? { ...sys, name } : sys
+    ));
+  };
+  const addOperation = (sysId: string) => {
+    setNewSystems(newSystems.map(sys =>
+      sys.id === sysId
+        ? { ...sys, operations: [...sys.operations, { id: Date.now().toString(), name: '' }] }
+        : sys
+    ));
+  };
+  const updateOperationName = (sysId: string, opId: string, name: string) => {
+    setNewSystems(newSystems.map(sys =>
+      sys.id === sysId
+        ? {
+            ...sys,
+            operations: sys.operations.map(op =>
+              op.id === opId ? { ...op, name } : op
+            )
+          }
+        : sys
+    ));
+  };
+  const removeOperation = (sysId: string, opId: string) => {
+    setNewSystems(newSystems.map(sys =>
+      sys.id === sysId
+        ? { ...sys, operations: sys.operations.filter(op => op.id !== opId) }
+        : sys
+    ));
+  };
+
+  // Fonction pour supprimer une consistance
+  const handleDeleteConsistency = (cons: string) => {
+    if (window.confirm(`Voulez-vous vraiment supprimer la consistance "${cons}" ?`)) {
+      setConsistencies(prev => prev.filter(c => c !== cons));
+      setLocalSystems(prev => {
+        const newObj = { ...prev };
+        delete newObj[cons];
+        return newObj;
+      });
+      setRecordsByConsistency(prev => {
+        const newObj = { ...prev };
+        delete newObj[cons];
+        return newObj;
+      });
+      // Si la consistance supprimée était sélectionnée, on la désélectionne
+      if (selectedConsistency === cons) {
+        setSelectedConsistency('');
+        setSelectedVehicle(null);
+      }
+    }
+  };
+
+  // Bouton retour global, toujours visible
+  const handleBack = () => {
+    setSelectedConsistency('');
+    setSelectedVehicle(null);
+    setShowCustomSysForm(false);
+    setShowPdf({operationId: null, type: undefined});
+    setShowViewer({url: null});
+  };
+
+  const handleAddSysOp = () => {
+    if (newOpName.trim()) {
+      setNewSysOps([...newSysOps, { id: Date.now().toString(), name: newOpName.trim() }]);
+      setNewOpName('');
+    }
+  };
+  const handleSaveNewSystem = () => {
+    if (!newSysName.trim() || newSysOps.length === 0) return;
+    setLocalSystems(prev => ({
+      ...prev,
+      [selectedConsistency]: [
+        ...(prev[selectedConsistency] || []),
+        { id: Date.now().toString(), name: newSysName.trim(), operations: newSysOps }
+      ]
+    }));
+    setShowAddSystemForm(false);
+    setNewSysName('');
+    setNewSysOps([]);
+    setNewOpName('');
+  };
+
+  // 1. Choix de la consistance
+  if (!selectedConsistency) {
+    return (
+      <>
+        <Box sx={{ mt: 4, mb: 2 }}>
+          <Button variant="outlined" disabled>
+            ← Retour
+          </Button>
+        </Box>
+        <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
+          <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Choisissez une consistance</Typography>
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 4, alignItems: 'center' }}>
+            {consistencies.map((cons) => (
+              <Button
+                key={cons}
+                variant="contained"
+                color="primary"
+                size="large"
+                sx={{ py: 2, px: 6, fontSize: 22 }}
+                onClick={() => handleSelectConsistency(cons)}
+              >
+                {cons}
+              </Button>
+            ))}
+            <IconButton color="primary" sx={{ ml: 1 }} onClick={() => setAddConsDialogOpen(true)}>
+              <AddIcon />
+            </IconButton>
+          </Box>
+        </Box>
+        <Dialog open={addConsDialogOpen} onClose={() => setAddConsDialogOpen(false)}>
+          <DialogTitle>Ajouter une consistance</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Nom de la consistance"
+              fullWidth
+              value={newConsName}
+              onChange={e => setNewConsName(e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAddConsDialogOpen(false)}>Annuler</Button>
+            <Button
+              onClick={() => {
+                setConsistencies([...consistencies, newConsName.trim()]);
+                setSelectedConsistency(newConsName.trim());
+                setSelectedVehicle(null);
+                setRecordsByConsistency(prev => {
+                  const newObj = { ...prev };
+                  const vehObj: { [vehicleId: number]: MaintenanceRecord[] } = {};
+                  VEHICLES.forEach(v => { vehObj[v.id] = []; });
+                  newObj[newConsName.trim()] = vehObj;
+                  return newObj;
+                });
+                setLocalSystems((prev) => ({ ...prev, [newConsName.trim()]: [] }));
+                setAddConsDialogOpen(false);
+                setNewConsName('');
+                setShowCustomSysForm(true);
+              }}
+              disabled={!newConsName.trim() || consistencies.includes(newConsName.trim())}
+              variant="contained"
+            >
+              Ajouter
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </>
+    );
+  }
+
+  // 2. Choix du véhicule (affiché en haut de l'interface principale aussi)
+  if (!selectedVehicle) {
+    return (
+      <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
+        <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Consistance : {selectedConsistency}</Typography>
+        <Typography variant="h6" sx={{ mb: 3, textAlign: 'center' }}>Choisissez un véhicule</Typography>
+        <FormControl fullWidth>
+          <InputLabel id="vehicle-select-label">Véhicule</InputLabel>
+          <Select
+            labelId="vehicle-select-label"
+            value={selectedVehicle ? String((selectedVehicle as Vehicle).id) : ''}
+            label="Véhicule"
+            onChange={(e: SelectChangeEvent<string>) => {
+              const veh = VEHICLES.find((v) => v.id === Number(e.target.value));
+              if (veh) setSelectedVehicle(veh);
+            }}
+          >
+            {VEHICLES.map((veh) => (
+              <MenuItem key={veh.id} value={String(veh.id)}>{veh.name}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+    );
+  }
+
+  if (selectedConsistency !== 'IS710' && showCustomSysForm && (!localSystems[selectedConsistency] || localSystems[selectedConsistency].length === 0)) {
+    // Nouveau formulaire dynamique pour ajouter des systèmes et opérations
+    return (
+      <>
+        <Box sx={{ mt: 4, mb: 2 }}>
+          <Button variant="outlined" onClick={handleBack}>
+            ← Retour
+          </Button>
+        </Box>
+        <Box sx={{ maxWidth: 600, mx: 'auto', mt: 8 }}>
+          <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Définir les systèmes et opérations pour {selectedConsistency}</Typography>
+          <Box>
+            {newSystems.map((sys, sysIdx) => (
+              <Box key={sys.id} sx={{ mb: 3, p: 2, border: '1px solid #ccc', borderRadius: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <TextField
+                    label={`Nom du système #${sysIdx + 1}`}
+                    value={sys.name}
+                    onChange={e => updateSystemName(sys.id, e.target.value)}
+                    sx={{ flex: 1, mr: 2 }}
+                  />
+                  <Button color="error" onClick={() => removeSystem(sys.id)}>Supprimer système</Button>
+                </Box>
+                <Box sx={{ ml: 2 }}>
+                  {sys.operations.map((op, opIdx) => (
+                    <Box key={op.id} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <TextField
+                        label={`Opération #${opIdx + 1}`}
+                        value={op.name}
+                        onChange={e => updateOperationName(sys.id, op.id, e.target.value)}
+                        sx={{ flex: 1, mr: 2 }}
+                      />
+                      <Button color="error" onClick={() => removeOperation(sys.id, op.id)}>Supprimer</Button>
+                    </Box>
+                  ))}
+                  <Button onClick={() => addOperation(sys.id)}>Ajouter une opération</Button>
+                </Box>
+              </Box>
+            ))}
+            <Button variant="outlined" onClick={addSystem} sx={{ mb: 2 }}>Ajouter un système</Button>
+          </Box>
+          <Button
+            sx={{ mt: 3 }}
+            variant="contained"
+            color="success"
+            disabled={newSystems.length === 0 || newSystems.some(sys => !sys.name || sys.operations.length === 0 || sys.operations.some(op => !op.name))}
+            onClick={() => {
+              setLocalSystems(prev => ({
+                ...prev,
+                [selectedConsistency]: newSystems
+              }));
+              setShowCustomSysForm(false);
+            }}
+          >
+            Commencer la maintenance
+          </Button>
+        </Box>
+      </>
+    );
+  }
+
+  if (showPdf.operationId && showPdf.type) {
+    // Trouver l'enregistrement correspondant à l'opération sélectionnée
+    const record = recordsByConsistency[selectedConsistency][selectedVehicle!.id].find(r => r.operationId === showPdf.operationId);
+    return (
+      <PdfViewerSharepoint
+        operationCode={showPdf.operationId}
+        type={showPdf.type}
+        onBack={() => setShowPdf({operationId: null, type: undefined})}
+        setStatus={record ? async (status) => {
+          const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle!.id].map(r =>
+            r.id === record.id ? { ...r, status } : r
+          );
+          setCurrentRecords(updatedRecords);
+          await saveRecords(updatedRecords);
+        } : undefined}
+        currentStatus={record?.status || 'non commencé'}
+        setTab={setTab}
+      />
+    );
+  }
+  if (showViewer.url) {
+    // Trouver l'enregistrement correspondant à l'opération sélectionnée
+    const record = recordsByConsistency[selectedConsistency][selectedVehicle!.id].find(r => r.operationId === selectedOperation);
+    return (
+      <ViewerModal
+        url={showViewer.url}
+        onBack={() => setShowViewer({url: null})}
+        recordId={record?.id}
+        setStatus={record ? async (status) => {
+          const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle!.id].map(r =>
+            r.id === record.id ? { ...r, status } : r
+          );
+          setCurrentRecords(updatedRecords);
+          await saveRecords(updatedRecords);
+        } : undefined}
+        currentStatus={record?.status || 'non commencé'}
+      />
+    );
+  }
+
+  // Affichage principal avec bouton retour global
+  return (
+    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
+      <Box>
+        <Box sx={{ position: 'absolute', top: 24, right: 24, zIndex: 2000 }}>
+          <Select
+            value={lang}
+            onChange={e => setLang(e.target.value as 'fr' | 'en')}
+            size="small"
+          >
+            <MenuItem value="fr">Français</MenuItem>
+            <MenuItem value="en">English</MenuItem>
+          </Select>
+        </Box>
+        <Box sx={{ mt: 4, mb: 2 }}>
+          <Button variant="outlined" onClick={handleBack}>
+            ← Retour
+          </Button>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 2, ml: 8 }}>
+          <Typography variant="h6">Consistance : {selectedConsistency}</Typography>
+          <FormControl sx={{ minWidth: 220 }}>
+            <InputLabel id="vehicle-select-label-main">Véhicule</InputLabel>
+            <Select
+              labelId="vehicle-select-label-main"
+              value={selectedVehicle ? String((selectedVehicle as Vehicle).id) : ''}
+              label="Véhicule"
+              onChange={(e: SelectChangeEvent<string>) => {
+                const veh = VEHICLES.find((v) => v.id === Number(e.target.value));
+                if (veh) setSelectedVehicle(veh);
+              }}
+            >
+              {VEHICLES.map((veh) => (
+                <MenuItem key={veh.id} value={String(veh.id)}>{veh.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          {selectedConsistency !== 'IS710' && (
+            <IconButton color="error" onClick={() => handleDeleteConsistency(selectedConsistency)}>
+              <DeleteIcon />
+            </IconButton>
+          )}
+          <Button variant="outlined" sx={{ ml: 2 }} onClick={() => setShowAddSystemForm(v => !v)}>
+            Ajouter un système
+          </Button>
+        </Box>
+        {showAddSystemForm && (
+          <Box sx={{ maxWidth: 400, mx: 'auto', mb: 3, p: 2, border: '1px solid #ccc', borderRadius: 2 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>Ajouter un système</Typography>
+            <TextField
+              label="Nom du système"
+              value={newSysName}
+              onChange={e => setNewSysName(e.target.value)}
+              fullWidth
+              sx={{ mb: 2 }}
+            />
+            <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+              <TextField
+                label="Nom de l'opération"
+                value={newOpName}
+                onChange={e => setNewOpName(e.target.value)}
+                fullWidth
+              />
+              <Button variant="outlined" onClick={handleAddSysOp} disabled={!newOpName.trim()}>
+                Ajouter opération
+              </Button>
+            </Box>
+            <Box sx={{ mb: 2 }}>
+              {newSysOps.map(op => (
+                <span key={op.id} style={{ marginRight: 8 }}>{op.name}</span>
+              ))}
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button onClick={() => { setShowAddSystemForm(false); setNewSysName(''); setNewSysOps([]); setNewOpName(''); }}>Annuler</Button>
+              <Button variant="contained" onClick={handleSaveNewSystem} disabled={!newSysName.trim() || newSysOps.length === 0}>
+                Ajouter
+              </Button>
+            </Box>
+          </Box>
+        )}
+        <Tabs value={tab} onChange={(_, v) => { setTab(v); resetForm(); }} sx={{ mb: 2 }}>
+          <Tab label={t.history} />
+          <Tab label={editingRecord ? t.edit : t.addRecord} />
+        </Tabs>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Typography color="error" align="center" sx={{ mt: 4 }}>{error}</Typography>
+        ) : (
+          <Box sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h5">Plan du véhicule {selectedVehicle.name}</Typography>
+              <Button variant="contained" color="primary" onClick={() => setSelectedConsistency('')}>
+                {selectedConsistency || 'Choisir la consistance'}
+              </Button>
+            </Box>
+            {selectedConsistency ? (
+              <Typography variant="h6" sx={{ mb: 2 }}>Consistance actuelle : {selectedConsistency}</Typography>
+            ) : (
+              <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+                <Button variant="contained" color="primary" onClick={() => setSelectedConsistency('Consistance 1')}>
+                  Consistance 1
+                </Button>
+                <Button variant="contained" color="primary" onClick={() => setSelectedConsistency('Consistance 2')}>
+                  Consistance 2
+                </Button>
+                <Button variant="contained" color="primary" onClick={() => setSelectedConsistency('Consistance 3')}>
+                  Consistance 3
+                </Button>
+              </Box>
+            )}
+            {tab === 0 && (
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>{t.system}</span>
+                          <IconButton size="small" onClick={(e) => handleSearchClick('system', e)}>
+                            <SearchIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                        <SearchPopover column="system" title="Système" />
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>{t.operation}</span>
+                          <IconButton size="small" onClick={(e) => handleSearchClick('operation', e)}>
+                            <SearchIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                        <SearchPopover column="operation" title="Opération" />
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>{t.date}</span>
+                          <IconButton size="small" onClick={(e) => handleSearchClick('date', e)}>
+                            <SearchIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                        <SearchPopover column="date" title="Date" />
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>{t.comment}</span>
+                          <IconButton size="small" onClick={(e) => handleSearchClick('comment', e)}>
+                            <SearchIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                        <SearchPopover column="comment" title="Commentaire" />
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>Statut de la fiche de traçabilité</span>
+                          <IconButton size="small" onClick={(e) => handleSearchClick('status', e)}>
+                            <SearchIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                        <SearchPopover column="status" title="Statut" />
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>Utilisateur</span>
+                          <IconButton size="small" onClick={(e) => handleSearchClick('user', e)}>
+                            <SearchIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                        <SearchPopover column="user" title="Utilisateur" />
+                      </TableCell>
+                      <TableCell align="right">{t.actions}</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filteredRecords.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} align="center">{t.noRecord}</TableCell>
+                      </TableRow>
+                    ) : filteredRecords.map((record) => {
+                      const system = currentSystems.find(s => s.id === record.systemId);
+                      const operation = system?.operations.find(o => o.id === record.operationId);
+                      // Couleur du statut
+                      let color = '#f44336'; // rouge par défaut
+                      if (record.status === 'en cours') color = '#ff9800'; // orange
+                      if (record.status === 'terminé') color = '#4caf50'; // vert
+                      return (
+                        <TableRow key={record.id}>
+                          <TableCell>{system?.name || record.systemId}</TableCell>
+                          <TableCell>{operation?.name || record.operationId}</TableCell>
+                          <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
+                          <TableCell>{record.comment}</TableCell>
+                          <TableCell>
+                            <span style={{
+                              display: 'inline-block',
+                              width: 18,
+                              height: 18,
+                              borderRadius: '50%',
+                              background: color,
+                              border: '1px solid #bbb',
+                              verticalAlign: 'middle',
+                              marginRight: 6
+                            }} />
+                            <span style={{ fontSize: 13, color: '#444' }}>{record.status || 'non commencé'}</span>
+                          </TableCell>
+                          <TableCell>{record.user || 'Inconnu'}</TableCell>
+                          <TableCell align="right">
+                            <Tooltip title={t.edit}>
+                              <IconButton onClick={() => handleEditRecord(record)}><EditIcon /></IconButton>
+                            </Tooltip>
+                            <Tooltip title={t.delete}>
+                              <IconButton color="error" onClick={() => setDeleteDialog({open: true, recordId: record.id})}><DeleteIcon /></IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+            {tab === 1 && (
+              <Box sx={{ maxWidth: 400, mx: 'auto', mt: 2 }}>
+                <FormControl fullWidth sx={{ mt: 2 }}>
+                  <InputLabel id="system-select-label">{t.system}</InputLabel>
+                  <Select
+                    labelId="system-select-label"
+                    value={selectedSystem}
+                    onChange={(e) => { setSelectedSystem(e.target.value); setSelectedOperation(''); }}
+                    label={t.system}
+                  >
+                    {currentSystems.map((system) => (
+                      <MenuItem key={system.id} value={system.id}>{system.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth sx={{ mt: 2 }}>
+                  <InputLabel id="operation-select-label">{t.operation}</InputLabel>
+                  <Select
+                    labelId="operation-select-label"
+                    value={selectedOperation}
+                    onChange={(e) => setSelectedOperation(e.target.value)}
+                    label={t.operation}
+                    disabled={!selectedSystem}
+                  >
+                    {selectedSystem && currentSystems.find(s => s.id === selectedSystem)?.operations.map((operation) => (
+                      <MenuItem key={operation.id} value={operation.id}>{operation.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <TextField
+                  fullWidth
+                  label={t.comment}
+                  multiline
+                  rows={3}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  sx={{ mt: 2 }}
+                />
+                <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                  {selectedOperation && (() => {
+                    const selectedSys = currentSystems.find(s => s.id === selectedSystem);
+                    const selectedOp = selectedSys?.operations.find(o => o.id === selectedOperation);
+                    return selectedOp ? <>
+                      <Button
+                        variant="outlined"
+                        onClick={() => setShowPdf({operationId: selectedOperation, type: 'protocole'})}
+                        disabled={
+                          selectedConsistency === 'IS710'
+                            ? (!("protocolUrl" in selectedOp) || !selectedOp.protocolUrl) && !selectedOp.id
+                            : !selectedOp.id
+                        }
+                      >
+                        Ouvrir le protocole SharePoint
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="secondary"
+                        onClick={() => setShowPdf({operationId: selectedOperation, type: 'tracabilite'})}
+                        disabled={!selectedOperation}
+                      >
+                        Ouvrir la fiche de traçabilité
+                      </Button>
+                    </> : null;
+                  })()}
+                </Box>
+                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <Button onClick={() => { resetForm(); setTab(0); }}>{t.cancel}</Button>
+                  <Button variant="contained" onClick={handleAddOrEdit} disabled={!selectedSystem || !selectedOperation}>
+                    {editingRecord ? t.update : t.save}
+                  </Button>
+                </Box>
+              </Box>
+            )}
+          </Box>
+        )}
+        <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({open: false, recordId: null})}>
+          <DialogTitle>{t.confirmDeleteTitle}</DialogTitle>
+          <DialogContent>
+            <Typography>{t.confirmDeleteText}</Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteDialog({open: false, recordId: null})}>{t.cancel}</Button>
+            <Button color="error" onClick={() => deleteDialog.recordId && handleDeleteRecord(deleteDialog.recordId)}>{t.delete}</Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    </LocalizationProvider>
+  );
+};
+
+export default VehiclePlan; 
