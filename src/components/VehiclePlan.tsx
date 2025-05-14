@@ -985,16 +985,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
       <Box>
-        <Box sx={{ position: 'absolute', top: 24, right: 24, zIndex: 2000 }}>
-          <Select
-            value={lang}
-            onChange={e => setLang(e.target.value as 'fr' | 'en')}
-            size="small"
-          >
-            <MenuItem value="fr">Français</MenuItem>
-            <MenuItem value="en">English</MenuItem>
-          </Select>
-        </Box>
         <Box sx={{ mt: 4, mb: 2 }}>
           <Button variant="outlined" onClick={handleBack}>
             ← Retour
