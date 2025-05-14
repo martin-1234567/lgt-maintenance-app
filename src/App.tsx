@@ -14,6 +14,9 @@ import ListItemText from '@mui/material/ListItemText';
 import LanguageIcon from '@mui/icons-material/Language';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import MenuIcon from '@mui/icons-material/Menu';
+import Drawer from '@mui/material/Drawer';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 const vehicles: Vehicle[] = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
@@ -367,62 +370,86 @@ function App() {
     </Box>
   );
 
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const isMobile = useMediaQuery('(max-width:600px)');
+
   // Couleur d'en-tête dynamique
   const headerBg = themeMode === 'dark' ? '#22334a' : '#3A7DB8';
   const headerText = themeMode === 'dark' ? '#fff' : '#fff';
 
+  // Nouveau header responsive
+  const header = (
+    <header
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        background: headerBg,
+        borderBottom: '1px solid #e0e0e0',
+        display: 'flex',
+        alignItems: 'center',
+        zIndex: 1000,
+        justifyContent: 'space-between',
+        padding: isMobile ? '6px 8px' : '8px 24px',
+        height: isMobile ? 60 : 100,
+      }}
+    >
+      <img
+        src="/images/logo-aff.png"
+        alt="Logo AFF"
+        style={{
+          height: isMobile ? 32 : 60,
+          marginRight: 8,
+          objectFit: 'contain',
+          display: 'block',
+        }}
+      />
+      <span
+        style={{
+          fontSize: isMobile ? '6vw' : '2.5rem',
+          fontWeight: 'bold',
+          letterSpacing: 2,
+          textShadow: '1px 1px 8px #222',
+          textAlign: 'center',
+          width: '100%',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}
+      >
+        {t.title}
+      </span>
+      {isMobile ? (
+        <>
+          <IconButton onClick={() => setDrawerOpen(true)} sx={{ color: 'white' }}>
+            <MenuIcon />
+          </IconButton>
+          <Drawer
+            anchor="right"
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+          >
+            <Box sx={{ width: 220, p: 2 }}>
+              {headerRight}
+            </Box>
+          </Drawer>
+        </>
+      ) : (
+        <Box sx={{ minWidth: 220 }}>{headerRight}</Box>
+      )}
+    </header>
+  );
+
   if (!accounts || accounts.length === 0) {
     return (
       <>
-        <header style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: 100,
-          background: headerBg,
-          borderBottom: '1px solid #e0e0e0',
-          display: 'flex',
-          alignItems: 'center',
-          zIndex: 1000,
-          justifyContent: 'flex-start',
-        }}>
-          <img
-            src="/images/logo-aff.png"
-            alt="Logo AFF"
-            style={{
-              height: 200,
-           
-              marginLeft: 24,
-              marginRight: 32,
-              flexShrink: 0,
-              objectFit: 'contain',
-              display: 'block',
-            }}
-          />
-          <span style={{
-            position: 'absolute',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            color: headerText,
-            fontSize: '3rem',
-            fontWeight: 'bold',
-            letterSpacing: 2,
-            textShadow: '1px 1px 8px #222',
-            textAlign: 'center',
-            pointerEvents: 'none',
-            width: '100%',
-          }}>
-            {t.title}
-          </span>
-          {headerRight}
-        </header>
+        {header}
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <Container maxWidth="lg" sx={{ mt: 22 }}>
+          <Container maxWidth="md" sx={{ mt: isMobile ? 8 : 14, px: { xs: 1, sm: 2 }, mb: 4 }}>
             <Box sx={{ my: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <Typography variant="h5" gutterBottom>
+              <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
                 {t.pleaseLogin}
               </Typography>
             </Box>
@@ -437,58 +464,13 @@ function App() {
     <>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <header style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: 100,
-          background: headerBg,
-          borderBottom: '1px solid #e0e0e0',
-          display: 'flex',
-          alignItems: 'center',
-          zIndex: 1000,
-          justifyContent: 'flex-start',
-        }}>
-          <img
-            src="/images/logo-aff.png"
-            alt="Logo AFF"
-            style={{
-              height: 110,
-              maxHeight: '90%',
-              marginLeft: 24,
-              marginRight: 32,
-              flexShrink: 0,
-              objectFit: 'contain',
-              display: 'block',
-            }}
-          />
-          <span style={{
-            position: 'absolute',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            color: headerText,
-            fontSize: '3rem',
-            fontWeight: 'bold',
-            letterSpacing: 2,
-            textShadow: '1px 1px 8px #222',
-            textAlign: 'center',
-            pointerEvents: 'none',
-            width: '100%',
-          }}>
-            {t.title}
-          </span>
-          {headerRight}
-        </header>
-        <Container maxWidth="lg" sx={{ mt: 22 }}>
+        {header}
+        <Container maxWidth="md" sx={{ mt: isMobile ? 8 : 14, px: { xs: 1, sm: 2 }, mb: 4 }}>
           <Box sx={{ my: 4 }}>
-            <Typography variant="h4" component="h1" gutterBottom>
+            <Typography variant={isMobile ? 'h6' : 'h4'} component="h1" gutterBottom sx={{ fontWeight: 600, textAlign: isMobile ? 'center' : 'left' }}>
               {t.subtitle}
             </Typography>
-            <VehiclePlan
-              systems={systemsWithOperations}
-            />
+            <VehiclePlan systems={systemsWithOperations} />
           </Box>
         </Container>
       </ThemeProvider>
