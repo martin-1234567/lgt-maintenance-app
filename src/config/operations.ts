@@ -88,7 +88,7 @@ export const msalConfig = {
   auth: {
     clientId: "e49521d5-b677-4bdd-86e8-0ed8df304127",
     authority: "https://login.microsoftonline.com/48af08d5-b84e-429a-bfbc-992f430848e0",
-    redirectUri: "http://localhost:3000", // ou ton URL de prod
+    redirectUri: process.env.REACT_APP_AZURE_REDIRECT_URI,
   },
   cache: {
     cacheLocation: "sessionStorage",
