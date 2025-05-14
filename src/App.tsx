@@ -452,6 +452,23 @@ function App() {
               <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
                 {t.pleaseLogin}
               </Typography>
+              <button
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '1.1rem',
+                  cursor: 'pointer',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: '#fff',
+                  color: '#3A7DB8',
+                  fontWeight: 'bold',
+                  boxShadow: '0 1px 4px #0002',
+                  marginTop: 16
+                }}
+                onClick={() => instance.loginRedirect(loginRequest)}
+              >
+                {t.login}
+              </button>
             </Box>
             <PresentationCarousel />
           </Container>
