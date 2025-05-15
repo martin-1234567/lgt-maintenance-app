@@ -522,6 +522,11 @@ function App() {
             <ListItemText>{t.language}</ListItemText>
           </MenuItem>
           <MenuItem onClick={handleVisualMenuOpen}>{t.visual}</MenuItem>
+          {(accounts && accounts.length > 0) && (
+            <MenuItem onClick={() => { instance.logoutRedirect(); handleSettingsClose(); }}>
+              {t.logout}
+            </MenuItem>
+          )}
         </Menu>
         <Menu
           anchorEl={langMenuAnchor}
