@@ -339,23 +339,24 @@ function App() {
         src="/images/logo-aff.png"
         alt="Logo AFF"
         style={{
-          height: isMobile ? 32 : 60,
-          marginRight: 8,
+          height: isMobile ? 28 : 60,
+          marginRight: isMobile ? 4 : 8,
           objectFit: 'contain',
           display: 'block',
         }}
       />
       <span
         style={{
-          fontSize: isMobile ? '6vw' : '2.5rem',
+          fontSize: isMobile ? '5vw' : '2.5rem',
           fontWeight: 'bold',
-          letterSpacing: 2,
-          textShadow: '1px 1px 8px #222',
+          letterSpacing: 1,
+          textShadow: isMobile ? '1px 1px 4px #222' : '1px 1px 8px #222',
           textAlign: 'center',
           width: '100%',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
-          textOverflow: 'ellipsis'
+          textOverflow: 'ellipsis',
+          lineHeight: isMobile ? '1.1' : '1.2',
         }}
       >
         {t.title}
@@ -409,15 +410,15 @@ function App() {
           <CssBaseline />
           {isMobile ? (
             <PullToRefresh onRefresh={() => Promise.resolve(window.location.reload())}>
-              <Container maxWidth="md" sx={{ mt: isMobile ? 8 : 14, px: { xs: 1, sm: 2 }, mb: 4 }}>
+              <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4 }}>
                 <Box sx={{ my: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
                     {t.pleaseLogin}
                   </Typography>
                   <button
                     style={{
-                      padding: '10px 20px',
-                      fontSize: '1.1rem',
+                      padding: isMobile ? '12px 0' : '10px 20px',
+                      fontSize: isMobile ? '1rem' : '1.1rem',
                       cursor: 'pointer',
                       borderRadius: 6,
                       border: 'none',
@@ -425,7 +426,10 @@ function App() {
                       color: '#3A7DB8',
                       fontWeight: 'bold',
                       boxShadow: '0 1px 4px #0002',
-                      marginTop: 16
+                      marginTop: 16,
+                      width: isMobile ? '100%' : undefined,
+                      maxWidth: 340,
+                      display: 'block',
                     }}
                     onClick={() => instance.loginRedirect(loginRequest)}
                   >
@@ -436,15 +440,15 @@ function App() {
               </Container>
             </PullToRefresh>
           ) : (
-            <Container maxWidth="md" sx={{ mt: isMobile ? 8 : 14, px: { xs: 1, sm: 2 }, mb: 4 }}>
+            <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4 }}>
               <Box sx={{ my: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
                   {t.pleaseLogin}
                 </Typography>
                 <button
                   style={{
-                    padding: '10px 20px',
-                    fontSize: '1.1rem',
+                    padding: isMobile ? '12px 0' : '10px 20px',
+                    fontSize: isMobile ? '1rem' : '1.1rem',
                     cursor: 'pointer',
                     borderRadius: 6,
                     border: 'none',
@@ -452,7 +456,10 @@ function App() {
                     color: '#3A7DB8',
                     fontWeight: 'bold',
                     boxShadow: '0 1px 4px #0002',
-                    marginTop: 16
+                    marginTop: 16,
+                    width: isMobile ? '100%' : undefined,
+                    maxWidth: 340,
+                    display: 'block',
                   }}
                   onClick={() => instance.loginRedirect(loginRequest)}
                 >
@@ -474,9 +481,9 @@ function App() {
         {header}
         {isMobile ? (
           <PullToRefresh onRefresh={() => Promise.resolve(window.location.reload())}>
-            <Container maxWidth="md" sx={{ mt: isMobile ? 8 : 14, px: { xs: 1, sm: 2 }, mb: 4 }}>
+            <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4 }}>
               <Box sx={{ my: 4 }}>
-                <Typography variant={isMobile ? 'h6' : 'h4'} component="h1" gutterBottom sx={{ fontWeight: 600, textAlign: isMobile ? 'center' : 'left' }}>
+                <Typography variant={isMobile ? 'h6' : 'h4'} component="h1" gutterBottom sx={{ fontWeight: 600, textAlign: isMobile ? 'center' : 'left', fontSize: isMobile ? '1.2rem' : undefined }}>
                   {t.subtitle}
                 </Typography>
                 <VehiclePlan systems={systemsWithOperations} />
@@ -484,9 +491,9 @@ function App() {
             </Container>
           </PullToRefresh>
         ) : (
-          <Container maxWidth="md" sx={{ mt: isMobile ? 8 : 14, px: { xs: 1, sm: 2 }, mb: 4 }}>
+          <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4 }}>
             <Box sx={{ my: 4 }}>
-              <Typography variant={isMobile ? 'h6' : 'h4'} component="h1" gutterBottom sx={{ fontWeight: 600, textAlign: isMobile ? 'center' : 'left' }}>
+              <Typography variant={isMobile ? 'h6' : 'h4'} component="h1" gutterBottom sx={{ fontWeight: 600, textAlign: isMobile ? 'center' : 'left', fontSize: isMobile ? '1.2rem' : undefined }}>
                 {t.subtitle}
               </Typography>
               <VehiclePlan systems={systemsWithOperations} />
