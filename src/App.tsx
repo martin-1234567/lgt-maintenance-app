@@ -326,9 +326,15 @@ function App() {
           <div style={{ fontSize: '0.95rem', opacity: 0.85 }}>{accounts[0].username}</div>
         </Box>
       )}
-      <IconButton onClick={handleSettingsClick} sx={{ color: 'white' }} size="large">
-        <SettingsIcon fontSize="inherit" />
-      </IconButton>
+      {isMobile ? (
+        <IconButton onClick={handleSettingsClick} sx={{ color: 'white' }} size="large">
+          <SettingsIcon fontSize="inherit" />
+        </IconButton>
+      ) : (
+        <IconButton onClick={handleSettingsClick} sx={{ color: 'white' }} size="large">
+          <SettingsIcon fontSize="inherit" />
+        </IconButton>
+      )}
       <Menu
         anchorEl={anchorEl}
         open={open}
@@ -341,11 +347,6 @@ function App() {
           <ListItemText>{t.language}</ListItemText>
         </MenuItem>
         <MenuItem onClick={handleVisualMenuOpen}>{t.visual}</MenuItem>
-        {accounts && accounts.length > 0 && (
-          <MenuItem onClick={() => { instance.logoutRedirect(); handleSettingsClose(); }}>
-            {t.logout}
-          </MenuItem>
-        )}
       </Menu>
       <Menu
         anchorEl={langMenuAnchor}
