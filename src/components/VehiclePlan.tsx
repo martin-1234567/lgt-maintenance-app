@@ -179,11 +179,20 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
   }, [excelUrl]);
 
   return (
-    <Dialog open onClose={onBack} maxWidth="xl" fullWidth fullScreen={isMobile}>
-      <DialogTitle sx={isMobile ? { p: 1, pb: 0 } : {}}>
-        <Button onClick={onBack} variant="outlined" sx={isMobile ? { fontSize: '1.1rem', minWidth: 100 } : {}}>Fermer</Button>
-      </DialogTitle>
-      <DialogContent sx={{ p: 0, ...(isMobile && { px: 0, py: 0 }) }}>
+    <Dialog open onClose={onBack} maxWidth="xl" fullWidth fullScreen={isMobile} PaperProps={isMobile ? { sx: { m: 0, p: 0, borderRadius: 0 } } : {}}>
+      {isMobile ? (
+        <Box sx={{ position: 'absolute', top: 12, left: 12, zIndex: 10 }}>
+          <Button onClick={onBack} variant="outlined" sx={{ fontSize: '1.1rem', minWidth: 100 }}>Fermer</Button>
+          {objectUrl && (
+            <Button onClick={() => window.open(objectUrl, '_blank')} variant="outlined" sx={{ ml: 1, fontSize: '1.1rem' }}>Ouvrir dans une nouvelle fenêtre</Button>
+          )}
+        </Box>
+      ) : (
+        <DialogTitle>
+          <Button onClick={onBack} variant="outlined">Fermer</Button>
+        </DialogTitle>
+      )}
+      <DialogContent sx={{ p: 0, ...(isMobile && { px: 0, py: 0, m: 0 }) }}>
         {loading && (
           <Box sx={{ color: 'text.primary', fontSize: 24, textAlign: 'center', mt: 10 }}>Chargement…</Box>
         )}
@@ -244,8 +253,8 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
               src={objectUrl}
               title={operationCode + '-' + type}
               width={isMobile ? '100vw' : '100%'}
-              height={isMobile ? 'calc(100vh - 56px)' : '800px'}
-              style={{ border: 'none', maxWidth: isMobile ? '100vw' : undefined, display: 'block' }}
+              height={isMobile ? '100vh' : '800px'}
+              style={{ border: 'none', maxWidth: isMobile ? '100vw' : undefined, display: 'block', minHeight: isMobile ? '100vh' : undefined }}
               allowFullScreen
             />
           ) : (
