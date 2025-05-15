@@ -17,6 +17,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import MenuIcon from '@mui/icons-material/Menu';
 import Drawer from '@mui/material/Drawer';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import PullToRefresh from 'react-pull-to-refresh';
 
 const vehicles: Vehicle[] = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
@@ -406,31 +407,61 @@ function App() {
         {header}
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <Container maxWidth="md" sx={{ mt: isMobile ? 8 : 14, px: { xs: 1, sm: 2 }, mb: 4 }}>
-            <Box sx={{ my: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
-                {t.pleaseLogin}
-              </Typography>
-              <button
-                style={{
-                  padding: '10px 20px',
-                  fontSize: '1.1rem',
-                  cursor: 'pointer',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: '#fff',
-                  color: '#3A7DB8',
-                  fontWeight: 'bold',
-                  boxShadow: '0 1px 4px #0002',
-                  marginTop: 16
-                }}
-                onClick={() => instance.loginRedirect(loginRequest)}
-              >
-                {t.login}
-              </button>
-            </Box>
-            <PresentationCarousel />
-          </Container>
+          {isMobile ? (
+            <PullToRefresh onRefresh={() => Promise.resolve(window.location.reload())}>
+              <Container maxWidth="md" sx={{ mt: isMobile ? 8 : 14, px: { xs: 1, sm: 2 }, mb: 4 }}>
+                <Box sx={{ my: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
+                    {t.pleaseLogin}
+                  </Typography>
+                  <button
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: '1.1rem',
+                      cursor: 'pointer',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: '#fff',
+                      color: '#3A7DB8',
+                      fontWeight: 'bold',
+                      boxShadow: '0 1px 4px #0002',
+                      marginTop: 16
+                    }}
+                    onClick={() => instance.loginRedirect(loginRequest)}
+                  >
+                    {t.login}
+                  </button>
+                </Box>
+                <PresentationCarousel />
+              </Container>
+            </PullToRefresh>
+          ) : (
+            <Container maxWidth="md" sx={{ mt: isMobile ? 8 : 14, px: { xs: 1, sm: 2 }, mb: 4 }}>
+              <Box sx={{ my: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
+                  {t.pleaseLogin}
+                </Typography>
+                <button
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: '1.1rem',
+                    cursor: 'pointer',
+                    borderRadius: 6,
+                    border: 'none',
+                    background: '#fff',
+                    color: '#3A7DB8',
+                    fontWeight: 'bold',
+                    boxShadow: '0 1px 4px #0002',
+                    marginTop: 16
+                  }}
+                  onClick={() => instance.loginRedirect(loginRequest)}
+                >
+                  {t.login}
+                </button>
+              </Box>
+              <PresentationCarousel />
+            </Container>
+          )}
         </ThemeProvider>
       </>
     );
@@ -441,14 +472,27 @@ function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         {header}
-        <Container maxWidth="md" sx={{ mt: isMobile ? 8 : 14, px: { xs: 1, sm: 2 }, mb: 4 }}>
-          <Box sx={{ my: 4 }}>
-            <Typography variant={isMobile ? 'h6' : 'h4'} component="h1" gutterBottom sx={{ fontWeight: 600, textAlign: isMobile ? 'center' : 'left' }}>
-              {t.subtitle}
-            </Typography>
-            <VehiclePlan systems={systemsWithOperations} />
-          </Box>
-        </Container>
+        {isMobile ? (
+          <PullToRefresh onRefresh={() => Promise.resolve(window.location.reload())}>
+            <Container maxWidth="md" sx={{ mt: isMobile ? 8 : 14, px: { xs: 1, sm: 2 }, mb: 4 }}>
+              <Box sx={{ my: 4 }}>
+                <Typography variant={isMobile ? 'h6' : 'h4'} component="h1" gutterBottom sx={{ fontWeight: 600, textAlign: isMobile ? 'center' : 'left' }}>
+                  {t.subtitle}
+                </Typography>
+                <VehiclePlan systems={systemsWithOperations} />
+              </Box>
+            </Container>
+          </PullToRefresh>
+        ) : (
+          <Container maxWidth="md" sx={{ mt: isMobile ? 8 : 14, px: { xs: 1, sm: 2 }, mb: 4 }}>
+            <Box sx={{ my: 4 }}>
+              <Typography variant={isMobile ? 'h6' : 'h4'} component="h1" gutterBottom sx={{ fontWeight: 600, textAlign: isMobile ? 'center' : 'left' }}>
+                {t.subtitle}
+              </Typography>
+              <VehiclePlan systems={systemsWithOperations} />
+            </Box>
+          </Container>
+        )}
       </ThemeProvider>
     </>
   );
