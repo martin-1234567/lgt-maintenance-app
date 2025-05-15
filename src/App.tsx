@@ -432,7 +432,7 @@ function App() {
           `} />
           {isMobile ? (
             <PullToRefresh onRefresh={() => Promise.resolve(window.location.reload())}>
-              <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch' }}>
+              <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch', minHeight: '100vh', overflowY: 'auto', pb: 4 }}>
                 <Box sx={{ my: 4, WebkitOverflowScrolling: 'touch' }}>
                   <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
                     {t.pleaseLogin}
@@ -462,7 +462,7 @@ function App() {
               </Container>
             </PullToRefresh>
           ) : (
-            <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch' }}>
+            <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch', minHeight: '100vh', overflowY: 'auto', pb: 4 }}>
               <Box sx={{ my: 4, WebkitOverflowScrolling: 'touch' }}>
                 <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
                   {t.pleaseLogin}
@@ -510,7 +510,7 @@ function App() {
         {header}
         {isMobile ? (
           <PullToRefresh onRefresh={() => Promise.resolve(window.location.reload())}>
-            <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch' }}>
+            <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch', minHeight: '100vh', overflowY: 'auto', pb: 4 }}>
               <Box sx={{ my: 4, WebkitOverflowScrolling: 'touch' }}>
                 <Typography variant={isMobile ? 'h6' : 'h4'} component="h1" gutterBottom sx={{ fontWeight: 600, textAlign: isMobile ? 'center' : 'left', fontSize: isMobile ? '1.2rem' : undefined }}>
                   {t.subtitle}
@@ -520,7 +520,7 @@ function App() {
             </Container>
           </PullToRefresh>
         ) : (
-          <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch' }}>
+          <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch', minHeight: '100vh', overflowY: 'auto', pb: 4 }}>
             <Box sx={{ my: 4, WebkitOverflowScrolling: 'touch' }}>
               <Typography variant={isMobile ? 'h6' : 'h4'} component="h1" gutterBottom sx={{ fontWeight: 600, textAlign: isMobile ? 'center' : 'left', fontSize: isMobile ? '1.2rem' : undefined }}>
                 {t.subtitle}
