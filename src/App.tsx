@@ -379,39 +379,6 @@ function App() {
           <IconButton onClick={handleSettingsClick} sx={{ color: 'white' }} size="large">
             <SettingsIcon fontSize="inherit" />
           </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={open}
-            onClose={handleSettingsClose}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-          >
-            <MenuItem onClick={handleLangMenuOpen}>
-              <ListItemIcon><LanguageIcon /></ListItemIcon>
-              <ListItemText>{t.language}</ListItemText>
-            </MenuItem>
-            <MenuItem onClick={handleVisualMenuOpen}>{t.visual}</MenuItem>
-          </Menu>
-          <Menu
-            anchorEl={langMenuAnchor}
-            open={langMenuOpen}
-            onClose={handleLangMenuClose}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-          >
-            <MenuItem selected={lang === 'fr'} onClick={() => handleLangChange('fr')}>Français</MenuItem>
-            <MenuItem selected={lang === 'en'} onClick={() => handleLangChange('en')}>English</MenuItem>
-          </Menu>
-          <Menu
-            anchorEl={visualMenuAnchor}
-            open={visualMenuOpen}
-            onClose={handleVisualMenuClose}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-          >
-            <MenuItem selected={themeMode === 'light'} onClick={() => handleThemeChange('light')}>{t.lightMode}</MenuItem>
-            <MenuItem selected={themeMode === 'dark'} onClick={() => handleThemeChange('dark')}>{t.darkMode}</MenuItem>
-          </Menu>
         </Box>
       )}
     </header>
@@ -421,6 +388,40 @@ function App() {
     return (
       <>
         {header}
+        {/* Menus contextuels réglages/langue/visuel, toujours présents */}
+        <Menu
+          anchorEl={anchorEl}
+          open={open}
+          onClose={handleSettingsClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem onClick={handleLangMenuOpen}>
+            <ListItemIcon><LanguageIcon /></ListItemIcon>
+            <ListItemText>{t.language}</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleVisualMenuOpen}>{t.visual}</MenuItem>
+        </Menu>
+        <Menu
+          anchorEl={langMenuAnchor}
+          open={langMenuOpen}
+          onClose={handleLangMenuClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem selected={lang === 'fr'} onClick={() => handleLangChange('fr')}>Français</MenuItem>
+          <MenuItem selected={lang === 'en'} onClick={() => handleLangChange('en')}>English</MenuItem>
+        </Menu>
+        <Menu
+          anchorEl={visualMenuAnchor}
+          open={visualMenuOpen}
+          onClose={handleVisualMenuClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem selected={themeMode === 'light'} onClick={() => handleThemeChange('light')}>{t.lightMode}</MenuItem>
+          <MenuItem selected={themeMode === 'dark'} onClick={() => handleThemeChange('dark')}>{t.darkMode}</MenuItem>
+        </Menu>
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <Global styles={`
@@ -508,6 +509,40 @@ function App() {
           }
         `} />
         {header}
+        {/* Menus contextuels réglages/langue/visuel, toujours présents */}
+        <Menu
+          anchorEl={anchorEl}
+          open={open}
+          onClose={handleSettingsClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem onClick={handleLangMenuOpen}>
+            <ListItemIcon><LanguageIcon /></ListItemIcon>
+            <ListItemText>{t.language}</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleVisualMenuOpen}>{t.visual}</MenuItem>
+        </Menu>
+        <Menu
+          anchorEl={langMenuAnchor}
+          open={langMenuOpen}
+          onClose={handleLangMenuClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem selected={lang === 'fr'} onClick={() => handleLangChange('fr')}>Français</MenuItem>
+          <MenuItem selected={lang === 'en'} onClick={() => handleLangChange('en')}>English</MenuItem>
+        </Menu>
+        <Menu
+          anchorEl={visualMenuAnchor}
+          open={visualMenuOpen}
+          onClose={handleVisualMenuClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem selected={themeMode === 'light'} onClick={() => handleThemeChange('light')}>{t.lightMode}</MenuItem>
+          <MenuItem selected={themeMode === 'dark'} onClick={() => handleThemeChange('dark')}>{t.darkMode}</MenuItem>
+        </Menu>
         {isMobile ? (
           <PullToRefresh onRefresh={() => Promise.resolve(window.location.reload())}>
             <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch', minHeight: '100vh', overflowY: 'auto', pb: 4 }}>
