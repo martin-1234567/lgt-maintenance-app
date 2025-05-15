@@ -992,9 +992,9 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             ← Retour
           </Button>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 2, ml: 8 }}>
-          <Typography variant="h6">Consistance : {selectedConsistency}</Typography>
-          <FormControl sx={{ minWidth: 220 }}>
+        <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 2, mb: 2, ml: isMobile ? 0 : 8 }}>
+          <Typography variant="h6" sx={{ fontSize: isMobile ? '1rem' : undefined }}>Consistance : {selectedConsistency}</Typography>
+          <FormControl sx={{ minWidth: 220 }} fullWidth={isMobile}>
             <InputLabel id="vehicle-select-label-main">Véhicule</InputLabel>
             <Select
               labelId="vehicle-select-label-main"
@@ -1011,11 +1011,11 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             </Select>
           </FormControl>
           {selectedConsistency !== 'IS710' && (
-            <IconButton color="error" onClick={() => handleDeleteConsistency(selectedConsistency)}>
+            <IconButton color="error" onClick={() => handleDeleteConsistency(selectedConsistency)} sx={{ alignSelf: isMobile ? 'flex-end' : 'center' }}>
               <DeleteIcon />
             </IconButton>
           )}
-          <Button variant="outlined" sx={{ ml: 2 }} onClick={() => setShowAddSystemForm(v => !v)}>
+          <Button variant="outlined" sx={{ mt: isMobile ? 1 : 0 }} fullWidth={isMobile} onClick={() => setShowAddSystemForm(v => !v)}>
             Ajouter un système
           </Button>
         </Box>
@@ -1099,115 +1099,145 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
               </Box>
             )}
             {tab === 0 && (
-              <Box sx={{ width: '100%', overflowX: isMobile ? 'auto' : 'visible', mb: isMobile ? 1 : 2 }}>
-                <TableContainer component={Paper} sx={{ minWidth: isMobile ? 500 : 650 }}>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span>{t.system}</span>
-                            <IconButton size="small" onClick={(e) => handleSearchClick('system', e)}>
-                              <SearchIcon fontSize="small" />
-                            </IconButton>
+              isMobile ? (
+                <Box sx={{ width: '100%', mb: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {filteredRecords.length === 0 ? (
+                    <Typography align="center" sx={{ color: '#888', fontSize: '1rem', mt: 2 }}>{t.noRecord}</Typography>
+                  ) : filteredRecords.map((record) => {
+                    const system = currentSystems.find(s => s.id === record.systemId);
+                    const operation = system?.operations.find(o => o.id === record.operationId);
+                    let color = '#f44336';
+                    if (record.status === 'en cours') color = '#ff9800';
+                    if (record.status === 'terminé') color = '#4caf50';
+                    return (
+                      <Paper key={record.id} sx={{ p: 2, borderRadius: 2, boxShadow: 1 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography sx={{ fontWeight: 600 }}>{system?.name || record.systemId}</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Tooltip title={t.edit}><IconButton size="small" onClick={() => handleEditRecord(record)}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                            <Tooltip title={t.delete}><IconButton size="small" color="error" onClick={() => setDeleteDialog({open: true, recordId: record.id})}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
                           </Box>
-                          <SearchPopover column="system" title="Système" />
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span>{t.operation}</span>
-                            <IconButton size="small" onClick={(e) => handleSearchClick('operation', e)}>
-                              <SearchIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                          <SearchPopover column="operation" title="Opération" />
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span>{t.date}</span>
-                            <IconButton size="small" onClick={(e) => handleSearchClick('date', e)}>
-                              <SearchIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                          <SearchPopover column="date" title="Date" />
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span>{t.comment}</span>
-                            <IconButton size="small" onClick={(e) => handleSearchClick('comment', e)}>
-                              <SearchIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                          <SearchPopover column="comment" title="Commentaire" />
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span>Statut de la fiche de traçabilité</span>
-                            <IconButton size="small" onClick={(e) => handleSearchClick('status', e)}>
-                              <SearchIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                          <SearchPopover column="status" title="Statut" />
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span>Utilisateur</span>
-                            <IconButton size="small" onClick={(e) => handleSearchClick('user', e)}>
-                              <SearchIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                          <SearchPopover column="user" title="Utilisateur" />
-                        </TableCell>
-                        <TableCell align="right">{t.actions}</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {filteredRecords.length === 0 ? (
+                        </Box>
+                        <Typography variant="body2" sx={{ mb: 0.5 }}><b>{t.operation} :</b> {operation?.name || record.operationId}</Typography>
+                        <Typography variant="body2" sx={{ mb: 0.5 }}><b>{t.date} :</b> {new Date(record.timestamp).toLocaleString()}</Typography>
+                        <Typography variant="body2" sx={{ mb: 0.5 }}><b>{t.comment} :</b> {record.comment}</Typography>
+                        <Typography variant="body2" sx={{ mb: 0.5 }}><b>Statut :</b> <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', background: color, border: '1px solid #bbb', verticalAlign: 'middle', marginRight: 4 }} />{record.status || 'non commencé'}</Typography>
+                        <Typography variant="body2"><b>{t.user} :</b> {record.user || 'Inconnu'}</Typography>
+                      </Paper>
+                    );
+                  })}
+                </Box>
+              ) : (
+                <Box sx={{ width: '100%', overflowX: 'visible', mb: 2 }}>
+                  <TableContainer component={Paper} sx={{ minWidth: 650 }}>
+                    <Table>
+                      <TableHead>
                         <TableRow>
-                          <TableCell colSpan={7} align="center">{t.noRecord}</TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>{t.system}</span>
+                              <IconButton size="small" onClick={(e) => handleSearchClick('system', e)}>
+                                <SearchIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            <SearchPopover column="system" title="Système" />
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>{t.operation}</span>
+                              <IconButton size="small" onClick={(e) => handleSearchClick('operation', e)}>
+                                <SearchIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            <SearchPopover column="operation" title="Opération" />
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>{t.date}</span>
+                              <IconButton size="small" onClick={(e) => handleSearchClick('date', e)}>
+                                <SearchIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            <SearchPopover column="date" title="Date" />
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>{t.comment}</span>
+                              <IconButton size="small" onClick={(e) => handleSearchClick('comment', e)}>
+                                <SearchIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            <SearchPopover column="comment" title="Commentaire" />
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>Statut de la fiche de traçabilité</span>
+                              <IconButton size="small" onClick={(e) => handleSearchClick('status', e)}>
+                                <SearchIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            <SearchPopover column="status" title="Statut" />
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>Utilisateur</span>
+                              <IconButton size="small" onClick={(e) => handleSearchClick('user', e)}>
+                                <SearchIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            <SearchPopover column="user" title="Utilisateur" />
+                          </TableCell>
+                          <TableCell align="right">{t.actions}</TableCell>
                         </TableRow>
-                      ) : filteredRecords.map((record) => {
-                        const system = currentSystems.find(s => s.id === record.systemId);
-                        const operation = system?.operations.find(o => o.id === record.operationId);
-                        // Couleur du statut
-                        let color = '#f44336'; // rouge par défaut
-                        if (record.status === 'en cours') color = '#ff9800'; // orange
-                        if (record.status === 'terminé') color = '#4caf50'; // vert
-                        return (
-                          <TableRow key={record.id}>
-                            <TableCell>{system?.name || record.systemId}</TableCell>
-                            <TableCell>{operation?.name || record.operationId}</TableCell>
-                            <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
-                            <TableCell>{record.comment}</TableCell>
-                            <TableCell>
-                              <span style={{
-                                display: 'inline-block',
-                                width: 18,
-                                height: 18,
-                                borderRadius: '50%',
-                                background: color,
-                                border: '1px solid #bbb',
-                                verticalAlign: 'middle',
-                                marginRight: 6
-                              }} />
-                              <span style={{ fontSize: 13, color: '#444' }}>{record.status || 'non commencé'}</span>
-                            </TableCell>
-                            <TableCell>{record.user || 'Inconnu'}</TableCell>
-                            <TableCell align="right">
-                              <Tooltip title={t.edit}>
-                                <IconButton onClick={() => handleEditRecord(record)}><EditIcon /></IconButton>
-                              </Tooltip>
-                              <Tooltip title={t.delete}>
-                                <IconButton color="error" onClick={() => setDeleteDialog({open: true, recordId: record.id})}><DeleteIcon /></IconButton>
-                              </Tooltip>
-                            </TableCell>
+                      </TableHead>
+                      <TableBody>
+                        {filteredRecords.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} align="center">{t.noRecord}</TableCell>
                           </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Box>
+                        ) : filteredRecords.map((record) => {
+                          const system = currentSystems.find(s => s.id === record.systemId);
+                          const operation = system?.operations.find(o => o.id === record.operationId);
+                          // Couleur du statut
+                          let color = '#f44336'; // rouge par défaut
+                          if (record.status === 'en cours') color = '#ff9800'; // orange
+                          if (record.status === 'terminé') color = '#4caf50'; // vert
+                          return (
+                            <TableRow key={record.id}>
+                              <TableCell>{system?.name || record.systemId}</TableCell>
+                              <TableCell>{operation?.name || record.operationId}</TableCell>
+                              <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
+                              <TableCell>{record.comment}</TableCell>
+                              <TableCell>
+                                <span style={{
+                                  display: 'inline-block',
+                                  width: 18,
+                                  height: 18,
+                                  borderRadius: '50%',
+                                  background: color,
+                                  border: '1px solid #bbb',
+                                  verticalAlign: 'middle',
+                                  marginRight: 6
+                                }} />
+                                <span style={{ fontSize: 13, color: '#444' }}>{record.status || 'non commencé'}</span>
+                              </TableCell>
+                              <TableCell>{record.user || 'Inconnu'}</TableCell>
+                              <TableCell align="right">
+                                <Tooltip title={t.edit}>
+                                  <IconButton onClick={() => handleEditRecord(record)}><EditIcon /></IconButton>
+                                </Tooltip>
+                                <Tooltip title={t.delete}>
+                                  <IconButton color="error" onClick={() => setDeleteDialog({open: true, recordId: record.id})}><DeleteIcon /></IconButton>
+                                </Tooltip>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              )
             )}
             {tab === 1 && (
               <Box sx={{ maxWidth: 400, mx: 'auto', mt: 2 }}>

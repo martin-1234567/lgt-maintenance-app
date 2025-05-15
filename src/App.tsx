@@ -330,21 +330,26 @@ function App() {
         display: 'flex',
         alignItems: 'center',
         zIndex: 1000,
-        justifyContent: 'space-between',
-        padding: isMobile ? '6px 8px' : '8px 24px',
-        height: isMobile ? 60 : 100,
+        justifyContent: isMobile ? 'center' : 'space-between',
+        padding: isMobile ? '6px 4px' : '8px 24px',
+        height: isMobile ? 56 : 100,
       }}
     >
-      <img
-        src="/images/logo-aff.png"
-        alt="Logo AFF"
-        style={{
-          height: isMobile ? 28 : 60,
-          marginRight: isMobile ? 4 : 8,
-          objectFit: 'contain',
-          display: 'block',
-        }}
-      />
+      {isMobile && (
+        <img
+          src="/images/logo-aff.png"
+          alt="Logo AFF"
+          style={{
+            height: 22,
+            marginRight: 6,
+            objectFit: 'contain',
+            display: 'block',
+            position: 'absolute',
+            left: 8,
+            top: 12,
+          }}
+        />
+      )}
       <span
         style={{
           fontSize: isMobile ? '5vw' : '2.5rem',
@@ -352,53 +357,62 @@ function App() {
           letterSpacing: 1,
           textShadow: isMobile ? '1px 1px 4px #222' : '1px 1px 8px #222',
           textAlign: 'center',
-          width: '100%',
+          width: isMobile ? '100%' : 'auto',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           lineHeight: isMobile ? '1.1' : '1.2',
+          margin: isMobile ? '0 auto' : undefined,
+          display: 'block',
         }}
       >
         {t.title}
       </span>
-      <Box sx={{ minWidth: 220, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-        <IconButton onClick={handleSettingsClick} sx={{ color: 'white' }} size="large">
-          <SettingsIcon fontSize="inherit" />
+      {isMobile && (
+        <IconButton onClick={handleSettingsClick} sx={{ color: 'white', position: 'absolute', right: 4, top: 6, p: 1 }} size="small">
+          <SettingsIcon fontSize="medium" />
         </IconButton>
-        <Menu
-          anchorEl={anchorEl}
-          open={open}
-          onClose={handleSettingsClose}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        >
-          <MenuItem onClick={handleLangMenuOpen}>
-            <ListItemIcon><LanguageIcon /></ListItemIcon>
-            <ListItemText>{t.language}</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={handleVisualMenuOpen}>{t.visual}</MenuItem>
-        </Menu>
-        <Menu
-          anchorEl={langMenuAnchor}
-          open={langMenuOpen}
-          onClose={handleLangMenuClose}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        >
-          <MenuItem selected={lang === 'fr'} onClick={() => handleLangChange('fr')}>Français</MenuItem>
-          <MenuItem selected={lang === 'en'} onClick={() => handleLangChange('en')}>English</MenuItem>
-        </Menu>
-        <Menu
-          anchorEl={visualMenuAnchor}
-          open={visualMenuOpen}
-          onClose={handleVisualMenuClose}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        >
-          <MenuItem selected={themeMode === 'light'} onClick={() => handleThemeChange('light')}>{t.lightMode}</MenuItem>
-          <MenuItem selected={themeMode === 'dark'} onClick={() => handleThemeChange('dark')}>{t.darkMode}</MenuItem>
-        </Menu>
-      </Box>
+      )}
+      {!isMobile && (
+        <Box sx={{ minWidth: 220, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+          <IconButton onClick={handleSettingsClick} sx={{ color: 'white' }} size="large">
+            <SettingsIcon fontSize="inherit" />
+          </IconButton>
+          <Menu
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleSettingsClose}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            <MenuItem onClick={handleLangMenuOpen}>
+              <ListItemIcon><LanguageIcon /></ListItemIcon>
+              <ListItemText>{t.language}</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={handleVisualMenuOpen}>{t.visual}</MenuItem>
+          </Menu>
+          <Menu
+            anchorEl={langMenuAnchor}
+            open={langMenuOpen}
+            onClose={handleLangMenuClose}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            <MenuItem selected={lang === 'fr'} onClick={() => handleLangChange('fr')}>Français</MenuItem>
+            <MenuItem selected={lang === 'en'} onClick={() => handleLangChange('en')}>English</MenuItem>
+          </Menu>
+          <Menu
+            anchorEl={visualMenuAnchor}
+            open={visualMenuOpen}
+            onClose={handleVisualMenuClose}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            <MenuItem selected={themeMode === 'light'} onClick={() => handleThemeChange('light')}>{t.lightMode}</MenuItem>
+            <MenuItem selected={themeMode === 'dark'} onClick={() => handleThemeChange('dark')}>{t.darkMode}</MenuItem>
+          </Menu>
+        </Box>
+      )}
     </header>
   );
 
