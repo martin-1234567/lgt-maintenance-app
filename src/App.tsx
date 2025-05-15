@@ -18,6 +18,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Drawer from '@mui/material/Drawer';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import PullToRefresh from 'react-pull-to-refresh';
+import { Global } from '@emotion/react';
 
 const vehicles: Vehicle[] = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
@@ -422,10 +423,17 @@ function App() {
         {header}
         <ThemeProvider theme={theme}>
           <CssBaseline />
+          <Global styles={`
+            html, body, #root {
+              height: 100%;
+              overflow-y: auto;
+              -webkit-overflow-scrolling: touch;
+            }
+          `} />
           {isMobile ? (
             <PullToRefresh onRefresh={() => Promise.resolve(window.location.reload())}>
-              <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4 }}>
-                <Box sx={{ my: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch' }}>
+                <Box sx={{ my: 4, WebkitOverflowScrolling: 'touch' }}>
                   <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
                     {t.pleaseLogin}
                   </Typography>
@@ -454,8 +462,8 @@ function App() {
               </Container>
             </PullToRefresh>
           ) : (
-            <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4 }}>
-              <Box sx={{ my: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch' }}>
+              <Box sx={{ my: 4, WebkitOverflowScrolling: 'touch' }}>
                 <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
                   {t.pleaseLogin}
                 </Typography>
@@ -492,11 +500,18 @@ function App() {
     <>
       <ThemeProvider theme={theme}>
         <CssBaseline />
+        <Global styles={`
+          html, body, #root {
+            height: 100%;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+        `} />
         {header}
         {isMobile ? (
           <PullToRefresh onRefresh={() => Promise.resolve(window.location.reload())}>
-            <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4 }}>
-              <Box sx={{ my: 4 }}>
+            <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch' }}>
+              <Box sx={{ my: 4, WebkitOverflowScrolling: 'touch' }}>
                 <Typography variant={isMobile ? 'h6' : 'h4'} component="h1" gutterBottom sx={{ fontWeight: 600, textAlign: isMobile ? 'center' : 'left', fontSize: isMobile ? '1.2rem' : undefined }}>
                   {t.subtitle}
                 </Typography>
@@ -505,8 +520,8 @@ function App() {
             </Container>
           </PullToRefresh>
         ) : (
-          <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4 }}>
-            <Box sx={{ my: 4 }}>
+          <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch' }}>
+            <Box sx={{ my: 4, WebkitOverflowScrolling: 'touch' }}>
               <Typography variant={isMobile ? 'h6' : 'h4'} component="h1" gutterBottom sx={{ fontWeight: 600, textAlign: isMobile ? 'center' : 'left', fontSize: isMobile ? '1.2rem' : undefined }}>
                 {t.subtitle}
               </Typography>
