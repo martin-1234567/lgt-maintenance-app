@@ -80,6 +80,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
   const [error, setError] = useState<string>('');
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [excelData, setExcelData] = useState<any[][] | null>(null);
+  const isMobile = useMediaQuery('(max-width:600px)');
 
   const getAccessToken = async () => {
     if (!accounts || accounts.length === 0) {
@@ -182,7 +183,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
       <DialogTitle>
         <Button onClick={onBack} variant="outlined">Fermer</Button>
       </DialogTitle>
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent sx={{ p: 0, ...(isMobile && { px: 0, py: 0 }) }}>
         {loading && (
           <Box sx={{ color: 'text.primary', fontSize: 24, textAlign: 'center', mt: 10 }}>Chargement…</Box>
         )}
@@ -242,9 +243,9 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
             <iframe
               src={objectUrl}
               title={operationCode + '-' + type}
-              width="100%"
-              height="800px"
-              style={{ border: 'none' }}
+              width={isMobile ? '100%' : '100%'}
+              height={isMobile ? '70vh' : '800px'}
+              style={{ border: 'none', maxWidth: isMobile ? '100vw' : undefined, display: 'block' }}
               allowFullScreen
             />
           ) : (
