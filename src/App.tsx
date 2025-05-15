@@ -434,8 +434,12 @@ function App() {
           `} />
           {isMobile ? (
             <PullToRefresh
-              onRefresh={() => Promise.resolve(window.location.reload())}
-              icon={<CircularProgress size={28} color="primary" />}
+              onRefresh={() => new Promise(resolve => setTimeout(resolve, 300)).then(() => window.location.reload())}
+              icon={
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', height: 60 }}>
+                  <CircularProgress size={28} color="primary" />
+                </div>
+              }
             >
               <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch', minHeight: '100vh', overflowY: 'auto', pb: 4 }}>
                 <Box sx={{ my: 4, WebkitOverflowScrolling: 'touch' }}>
@@ -554,8 +558,12 @@ function App() {
         </Menu>
         {isMobile ? (
           <PullToRefresh
-            onRefresh={() => Promise.resolve(window.location.reload())}
-            icon={<CircularProgress size={28} color="primary" />}
+            onRefresh={() => new Promise(resolve => setTimeout(resolve, 300)).then(() => window.location.reload())}
+            icon={
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', height: 60 }}>
+                <CircularProgress size={28} color="primary" />
+              </div>
+            }
           >
             <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch', minHeight: '100vh', overflowY: 'auto', pb: 4 }}>
               <Box sx={{ my: 4, WebkitOverflowScrolling: 'touch' }}>
