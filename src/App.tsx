@@ -455,7 +455,8 @@ function App() {
                 if (upToDate) {
                   return;
                 } else {
-                  window.location.reload();
+                  setTimeout(() => window.location.reload(), 100);
+                  return;
                 }
               }}
               icon={
@@ -586,7 +587,8 @@ function App() {
               if (upToDate) {
                 return;
               } else {
-                window.location.reload();
+                setTimeout(() => window.location.reload(), 100);
+                return;
               }
             }}
             icon={
