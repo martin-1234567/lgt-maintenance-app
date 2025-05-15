@@ -247,6 +247,22 @@ function PresentationCarousel() {
   );
 }
 
+// Fonction simulant la vérification de fraîcheur des données (à adapter selon votre backend)
+async function checkIfDataIsUpToDate() {
+  // Exemple : on simule un appel API qui retourne true si les données sont à jour
+  // Remplacez ceci par un vrai appel API ou une vraie logique métier !
+  try {
+    // const response = await fetch('/api/lastUpdate');
+    // const { lastUpdate } = await response.json();
+    // return lastUpdate <= localStorage.getItem('lastUpdate');
+    // Simulation : 80% de chances que ce soit à jour
+    return Math.random() < 0.8;
+  } catch (e) {
+    // En cas d'erreur réseau, on considère qu'il faut recharger
+    return false;
+  }
+}
+
 function App() {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const { instance, accounts } = useMsal();
@@ -434,7 +450,14 @@ function App() {
           `} />
           {isMobile ? (
             <PullToRefresh
-              onRefresh={() => new Promise(resolve => setTimeout(resolve, 300)).then(() => window.location.reload())}
+              onRefresh={async () => {
+                const upToDate = await checkIfDataIsUpToDate();
+                if (upToDate) {
+                  return;
+                } else {
+                  window.location.reload();
+                }
+              }}
               icon={
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', height: 60 }}>
                   <CircularProgress size={28} color="primary" />
@@ -558,7 +581,14 @@ function App() {
         </Menu>
         {isMobile ? (
           <PullToRefresh
-            onRefresh={() => new Promise(resolve => setTimeout(resolve, 300)).then(() => window.location.reload())}
+            onRefresh={async () => {
+              const upToDate = await checkIfDataIsUpToDate();
+              if (upToDate) {
+                return;
+              } else {
+                window.location.reload();
+              }
+            }}
             icon={
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', height: 60 }}>
                 <CircularProgress size={28} color="primary" />
