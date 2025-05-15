@@ -310,68 +310,6 @@ function App() {
     setSelectedVehicle(vehicle || null);
   };
 
-  // Préparation du bloc à droite de l'en-tête
-  const headerRight = (
-    <Box sx={{ position: 'absolute', right: 32, top: 0, height: '100%', display: 'flex', alignItems: 'center', gap: 2 }}>
-      {(!accounts || accounts.length === 0) ? (
-        <button
-          style={{ padding: '10px 20px', fontSize: '1.1rem', cursor: 'pointer', borderRadius: 6, border: 'none', background: '#fff', color: '#3A7DB8', fontWeight: 'bold', boxShadow: '0 1px 4px #0002', marginRight: 8 }}
-          onClick={() => instance.loginRedirect(loginRequest)}
-        >
-          {t.login}
-        </button>
-      ) : (
-        <Box sx={{ color: 'white', textAlign: 'right', fontSize: '1.1rem', fontWeight: 500, marginRight: 2 }}>
-          <div>{accounts[0].name}</div>
-          <div style={{ fontSize: '0.95rem', opacity: 0.85 }}>{accounts[0].username}</div>
-        </Box>
-      )}
-      {isMobile ? (
-        <IconButton onClick={handleSettingsClick} sx={{ color: 'white' }} size="large">
-          <SettingsIcon fontSize="inherit" />
-        </IconButton>
-      ) : (
-        <IconButton onClick={handleSettingsClick} sx={{ color: 'white' }} size="large">
-          <SettingsIcon fontSize="inherit" />
-        </IconButton>
-      )}
-      <Menu
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleSettingsClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <MenuItem onClick={handleLangMenuOpen}>
-          <ListItemIcon><LanguageIcon /></ListItemIcon>
-          <ListItemText>{t.language}</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleVisualMenuOpen}>{t.visual}</MenuItem>
-      </Menu>
-      <Menu
-        anchorEl={langMenuAnchor}
-        open={langMenuOpen}
-        onClose={handleLangMenuClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <MenuItem selected={lang === 'fr'} onClick={() => handleLangChange('fr')}>Français</MenuItem>
-        <MenuItem selected={lang === 'en'} onClick={() => handleLangChange('en')}>English</MenuItem>
-      </Menu>
-      <Menu
-        anchorEl={visualMenuAnchor}
-        open={visualMenuOpen}
-        onClose={handleVisualMenuClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <MenuItem selected={themeMode === 'light'} onClick={() => handleThemeChange('light')}>{t.lightMode}</MenuItem>
-        <MenuItem selected={themeMode === 'dark'} onClick={() => handleThemeChange('dark')}>{t.darkMode}</MenuItem>
-      </Menu>
-    </Box>
-  );
-
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const isMobile = useMediaQuery('(max-width:600px)');
 
   // Couleur d'en-tête dynamique
@@ -421,24 +359,44 @@ function App() {
       >
         {t.title}
       </span>
-      {isMobile ? (
-        <>
-          <IconButton onClick={() => setDrawerOpen(true)} sx={{ color: 'white' }}>
-            <MenuIcon />
-          </IconButton>
-          <Drawer
-            anchor="right"
-            open={drawerOpen}
-            onClose={() => setDrawerOpen(false)}
-          >
-            <Box sx={{ width: 220, p: 2 }}>
-              {headerRight}
-            </Box>
-          </Drawer>
-        </>
-      ) : (
-        <Box sx={{ minWidth: 220 }}>{headerRight}</Box>
-      )}
+      <Box sx={{ minWidth: 220, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+        <IconButton onClick={handleSettingsClick} sx={{ color: 'white' }} size="large">
+          <SettingsIcon fontSize="inherit" />
+        </IconButton>
+        <Menu
+          anchorEl={anchorEl}
+          open={open}
+          onClose={handleSettingsClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem onClick={handleLangMenuOpen}>
+            <ListItemIcon><LanguageIcon /></ListItemIcon>
+            <ListItemText>{t.language}</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleVisualMenuOpen}>{t.visual}</MenuItem>
+        </Menu>
+        <Menu
+          anchorEl={langMenuAnchor}
+          open={langMenuOpen}
+          onClose={handleLangMenuClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem selected={lang === 'fr'} onClick={() => handleLangChange('fr')}>Français</MenuItem>
+          <MenuItem selected={lang === 'en'} onClick={() => handleLangChange('en')}>English</MenuItem>
+        </Menu>
+        <Menu
+          anchorEl={visualMenuAnchor}
+          open={visualMenuOpen}
+          onClose={handleVisualMenuClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem selected={themeMode === 'light'} onClick={() => handleThemeChange('light')}>{t.lightMode}</MenuItem>
+          <MenuItem selected={themeMode === 'dark'} onClick={() => handleThemeChange('dark')}>{t.darkMode}</MenuItem>
+        </Menu>
+      </Box>
     </header>
   );
 
