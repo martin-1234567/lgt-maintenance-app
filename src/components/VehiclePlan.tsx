@@ -179,9 +179,9 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
   }, [excelUrl]);
 
   return (
-    <Dialog open onClose={onBack} maxWidth="xl" fullWidth>
-      <DialogTitle>
-        <Button onClick={onBack} variant="outlined">Fermer</Button>
+    <Dialog open onClose={onBack} maxWidth="xl" fullWidth fullScreen={isMobile}>
+      <DialogTitle sx={isMobile ? { p: 1, pb: 0 } : {}}>
+        <Button onClick={onBack} variant="outlined" sx={isMobile ? { fontSize: '1.1rem', minWidth: 100 } : {}}>Fermer</Button>
       </DialogTitle>
       <DialogContent sx={{ p: 0, ...(isMobile && { px: 0, py: 0 }) }}>
         {loading && (
@@ -243,8 +243,8 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
             <iframe
               src={objectUrl}
               title={operationCode + '-' + type}
-              width={isMobile ? '100%' : '100%'}
-              height={isMobile ? '70vh' : '800px'}
+              width={isMobile ? '100vw' : '100%'}
+              height={isMobile ? 'calc(100vh - 56px)' : '800px'}
               style={{ border: 'none', maxWidth: isMobile ? '100vw' : undefined, display: 'block' }}
               allowFullScreen
             />
