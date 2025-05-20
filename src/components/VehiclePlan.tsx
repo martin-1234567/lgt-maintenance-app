@@ -643,6 +643,10 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   const currentRecords = recordsByConsistency[selectedConsistency]?.[selectedVehicle?.id || 0] || [];
   const pendingRecords = getPendingRecords();
 
+  // Juste avant le rendu du tableau d'attente
+  console.log('pendingRecords', pendingRecords);
+  console.log('recordsByConsistency', recordsByConsistency);
+
   const handleSearchClick = (column: string, event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(prev => ({
       ...prev,
