@@ -799,11 +799,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   if (!selectedConsistency) {
     return (
       <>
-        <Box sx={{ mt: 4, mb: 2 }}>
-          <Button variant="outlined" disabled>
-            ← Retour
-          </Button>
-        </Box>
         <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
           <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Choisissez une consistance</Typography>
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 4, alignItems: 'center' }}>
@@ -824,6 +819,62 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             </IconButton>
           </Box>
         </Box>
+
+        {/* Historique des fiches de traçabilité en cours ou non commencées */}
+        <Box sx={{ maxWidth: 800, mx: 'auto', mt: 8, px: 2 }}>
+          <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Fiches de traçabilité en attente</Typography>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Consistance</TableCell>
+                  <TableCell>Véhicule</TableCell>
+                  <TableCell>Système</TableCell>
+                  <TableCell>Opération</TableCell>
+                  <TableCell>Statut</TableCell>
+                  <TableCell>Date</TableCell>
+                  <TableCell>Utilisateur</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {Object.entries(recordsByConsistency).flatMap(([cons, vehicles]) =>
+                  Object.entries(vehicles).flatMap(([vehicleId, records]) =>
+                    records
+                      .filter(record => record.status === 'en cours' || record.status === 'non commencé')
+                      .map(record => {
+                        const system = currentSystems.find(s => s.id === record.systemId);
+                        const operation = system?.operations.find(o => o.id === record.operationId);
+                        return (
+                          <TableRow key={record.id}>
+                            <TableCell>{cons}</TableCell>
+                            <TableCell>Véhicule {vehicleId}</TableCell>
+                            <TableCell>{system?.name || record.systemId}</TableCell>
+                            <TableCell>{operation?.name || record.operationId}</TableCell>
+                            <TableCell>
+                              <span style={{
+                                display: 'inline-block',
+                                width: 14,
+                                height: 14,
+                                borderRadius: '50%',
+                                background: record.status === 'en cours' ? '#ff9800' : '#f44336',
+                                border: '1px solid #bbb',
+                                verticalAlign: 'middle',
+                                marginRight: 4
+                              }} />
+                              {record.status}
+                            </TableCell>
+                            <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
+                            <TableCell>{record.user || 'Inconnu'}</TableCell>
+                          </TableRow>
+                        );
+                      })
+                  )
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+
         <Dialog open={addConsDialogOpen} onClose={() => setAddConsDialogOpen(false)}>
           <DialogTitle>Ajouter une consistance</DialogTitle>
           <DialogContent>
