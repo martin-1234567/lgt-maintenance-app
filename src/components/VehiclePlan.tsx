@@ -415,6 +415,14 @@ const translations = {
   }
 };
 
+// Ajout du type pour un enregistrement en attente
+interface PendingRecord extends MaintenanceRecord {
+  consistency: string;
+  vehicleId: number;
+  systemName: string;
+  operationName: string;
+}
+
 const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   const { instance, accounts } = useMsal();
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
@@ -517,7 +525,13 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       });
       maintenanceService.setAccessToken(response.accessToken);
       await maintenanceService.saveMaintenanceRecords(consistency, vehicleId, updatedRecords);
-      updateLocalRecords(consistency, vehicleId, updatedRecords);
+      setRecordsByConsistency(prev => ({
+        ...prev,
+        [consistency]: {
+          ...prev[consistency],
+          [vehicleId]: updatedRecords
+        }
+      }));
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la sauvegarde des enregistrements');
     }
@@ -526,8 +540,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   // Fonction pour charger les enregistrements
   const loadRecords = async (consistency: string, vehicleId: number) => {
     try {
-      setLoading(true);
-      setError(null);
       if (!accounts || accounts.length === 0) {
         throw new Error("Aucun compte connecté");
       }
@@ -536,18 +548,16 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         account: accounts[0],
       });
       maintenanceService.setAccessToken(response.accessToken);
-      const loadedRecords = await maintenanceService.getMaintenanceRecords(consistency, vehicleId);
+      const records = await maintenanceService.getMaintenanceRecords(consistency, vehicleId);
       setRecordsByConsistency(prev => ({
         ...prev,
         [consistency]: {
           ...prev[consistency],
-          [vehicleId]: loadedRecords
+          [vehicleId]: records
         }
       }));
     } catch (err: any) {
       setError(err.message || 'Erreur lors du chargement des enregistrements');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -590,16 +600,24 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   };
 
   // Fonction pour obtenir toutes les fiches en attente
-  const getPendingRecords = () => {
+  const getPendingRecords = (): PendingRecord[] => {
+    if (!selectedConsistency) return [];
+    
     return Object.entries(recordsByConsistency).flatMap(([cons, vehicles]) =>
       Object.entries(vehicles).flatMap(([vehicleId, records]) =>
         records
           .filter(record => record.status === 'en cours' || record.status === 'non commencé')
-          .map(record => ({
-            ...record,
-            consistency: cons,
-            vehicleId: Number(vehicleId)
-          }))
+          .map(record => {
+            const system = systems.find(s => s.id === record.systemId);
+            const operation = system?.operations.find(o => o.id === record.operationId);
+            return {
+              ...record,
+              consistency: cons,
+              vehicleId: Number(vehicleId),
+              systemName: system?.name || record.systemId,
+              operationName: operation?.name || record.operationId
+            };
+          })
       )
     );
   };
@@ -619,10 +637,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     localStorage.setItem('localSystems', JSON.stringify(localSystems));
   }, [localSystems]);
 
-  const currentRecords = (selectedConsistency && selectedVehicle)
-    ? (recordsByConsistency[selectedConsistency]?.[selectedVehicle.id] || [])
-    : [];
-
+  const currentRecords = recordsByConsistency[selectedConsistency]?.[selectedVehicle?.id || 0] || [];
   const pendingRecords = getPendingRecords();
 
   const handleSearchClick = (column: string, event: React.MouseEvent<HTMLElement>) => {
@@ -864,33 +879,29 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {pendingRecords.map(record => {
-                  const system = currentSystems.find(s => s.id === record.systemId);
-                  const operation = system?.operations.find(o => o.id === record.operationId);
-                  return (
-                    <TableRow key={record.id}>
-                      <TableCell>{record.consistency}</TableCell>
-                      <TableCell>Véhicule {record.vehicleId}</TableCell>
-                      <TableCell>{system?.name || record.systemId}</TableCell>
-                      <TableCell>{operation?.name || record.operationId}</TableCell>
-                      <TableCell>
-                        <span style={{
-                          display: 'inline-block',
-                          width: 14,
-                          height: 14,
-                          borderRadius: '50%',
-                          background: record.status === 'en cours' ? '#ff9800' : '#f44336',
-                          border: '1px solid #bbb',
-                          verticalAlign: 'middle',
-                          marginRight: 4
-                        }} />
-                        {record.status}
-                      </TableCell>
-                      <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
-                      <TableCell>{record.user || 'Inconnu'}</TableCell>
-                    </TableRow>
-                  );
-                })}
+                {pendingRecords.map((record: PendingRecord) => (
+                  <TableRow key={record.id}>
+                    <TableCell>{record.consistency}</TableCell>
+                    <TableCell>Véhicule {record.vehicleId}</TableCell>
+                    <TableCell>{record.systemName}</TableCell>
+                    <TableCell>{record.operationName}</TableCell>
+                    <TableCell>
+                      <span style={{
+                        display: 'inline-block',
+                        width: 14,
+                        height: 14,
+                        borderRadius: '50%',
+                        background: record.status === 'en cours' ? '#ff9800' : '#f44336',
+                        border: '1px solid #bbb',
+                        verticalAlign: 'middle',
+                        marginRight: 4
+                      }} />
+                      {record.status}
+                    </TableCell>
+                    <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
+                    <TableCell>{record.user || 'Inconnu'}</TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </TableContainer>
