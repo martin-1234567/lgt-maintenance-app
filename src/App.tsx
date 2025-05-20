@@ -402,6 +402,9 @@ function App() {
           lineHeight: isMobile ? '1.1' : '1.2',
           margin: isMobile ? '0 auto' : undefined,
           display: 'block',
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
         }}
       >
         {t.title}
