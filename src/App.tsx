@@ -20,6 +20,9 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import PullToRefresh from 'react-pull-to-refresh';
 import { Global } from '@emotion/react';
 import CircularProgress from '@mui/material/CircularProgress';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Button from '@mui/material/Button';
 
 const vehicles: Vehicle[] = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
@@ -358,13 +361,30 @@ function App() {
           src="/images/logo-aff.png"
           alt="Logo AFF"
           style={{
-            height: 22,
-            marginRight: 6,
+            height: 56,
             objectFit: 'contain',
             display: 'block',
             position: 'absolute',
             left: 8,
-            top: 12,
+            top: 0,
+            bottom: 0,
+            margin: 'auto 0',
+          }}
+        />
+      )}
+      {!isMobile && (
+        <img
+          src="/images/logo-aff.png"
+          alt="Logo AFF"
+          style={{
+            height: 100,
+            objectFit: 'contain',
+            display: 'block',
+            position: 'absolute',
+            left: 24,
+            top: 0,
+            bottom: 0,
+            margin: 'auto 0',
           }}
         />
       )}
