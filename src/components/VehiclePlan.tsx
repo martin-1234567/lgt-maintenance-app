@@ -885,29 +885,37 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           <TableContainer component={Paper}>
             <Table>
               <TableBody>
-                {pendingRecords.map((record: PendingRecord) => (
-                  <TableRow key={record.id}>
-                    <TableCell>{record.consistency}</TableCell>
-                    <TableCell>Véhicule {record.vehicleId}</TableCell>
-                    <TableCell>{record.systemName}</TableCell>
-                    <TableCell>{record.operationName}</TableCell>
-                    <TableCell>
-                      <span style={{
-                        display: 'inline-block',
-                        width: 14,
-                        height: 14,
-                        borderRadius: '50%',
-                        background: record.status === 'en cours' ? '#ff9800' : '#f44336',
-                        border: '1px solid #bbb',
-                        verticalAlign: 'middle',
-                        marginRight: 4
-                      }} />
-                      {record.status}
+                {pendingRecords.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" style={{ color: '#888' }}>
+                      Aucune fiche en attente
                     </TableCell>
-                    <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
-                    <TableCell>{record.user || 'Inconnu'}</TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  pendingRecords.map((record: PendingRecord) => (
+                    <TableRow key={record.id}>
+                      <TableCell>{record.consistency}</TableCell>
+                      <TableCell>Véhicule {record.vehicleId}</TableCell>
+                      <TableCell>{record.systemName}</TableCell>
+                      <TableCell>{record.operationName}</TableCell>
+                      <TableCell>
+                        <span style={{
+                          display: 'inline-block',
+                          width: 14,
+                          height: 14,
+                          borderRadius: '50%',
+                          background: record.status === 'en cours' ? '#ff9800' : '#f44336',
+                          border: '1px solid #bbb',
+                          verticalAlign: 'middle',
+                          marginRight: 4
+                        }} />
+                        {record.status}
+                      </TableCell>
+                      <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
+                      <TableCell>{record.user || 'Inconnu'}</TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>
