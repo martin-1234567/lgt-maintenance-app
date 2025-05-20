@@ -463,61 +463,50 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   const [opName, setOpName] = useState('');
   const [ops, setOps] = useState<{ id: string; name: string }[]>([]);
   const [showCustomSysForm, setShowCustomSysForm] = useState(false);
-  // Ajout pour formulaire dynamique de systèmes/opérations
   const [newSystems, setNewSystems] = useState<
     { id: string, name: string, operations: { id: string, name: string }[] }[]
   >([]);
-  // État pour l'ajout manuel de système/opérations sur la page principale
   const [showAddSystemForm, setShowAddSystemForm] = useState(false);
   const [newSysName, setNewSysName] = useState('');
   const [newSysOps, setNewSysOps] = useState<{ id: string; name: string }[]>([]);
   const [newOpName, setNewOpName] = useState('');
-  // Ajout de la gestion de la langue
   const [lang, setLang] = useState<'fr' | 'en'>('fr');
   const t = translations[lang];
   const isMobile = useMediaQuery('(max-width:600px)');
 
   const maintenanceService = MaintenanceService.getInstance();
-
   const userName = accounts && accounts[0] ? (accounts[0].name || accounts[0].username) : 'Inconnu';
 
-  useEffect(() => {
-    const loadRecords = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        if (!accounts || accounts.length === 0) {
-          throw new Error("Aucun compte connecté");
-        }
-        const response = await instance.acquireTokenSilent({
-          scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
-          account: accounts[0],
-        });
-        maintenanceService.setAccessToken(response.accessToken);
-        if (selectedVehicle && selectedConsistency) {
-          const loadedRecords = await maintenanceService.getMaintenanceRecords(selectedConsistency, selectedVehicle.id);
-          setRecordsByConsistency(prev => ({ ...prev, [selectedConsistency]: { ...prev[selectedConsistency], [selectedVehicle.id]: loadedRecords } }));
-        }
-      } catch (err: any) {
-        setError(err.message || 'Erreur lors du chargement des enregistrements');
-      } finally {
-        setLoading(false);
+  // Réinitialisation du formulaire
+  const resetForm = () => {
+    setEditingRecord(null);
+    setSelectedSystem('');
+    setSelectedOperation('');
+    setComment('');
+  };
+
+  // Gestion de l'édition d'un enregistrement
+  const handleEditRecord = (record: MaintenanceRecord) => {
+    setEditingRecord(record);
+    setSelectedSystem(record.systemId);
+    setSelectedOperation(record.operationId);
+    setComment(record.comment || '');
+    setTab(1);
+  };
+
+  // Fonction de mise à jour locale des enregistrements
+  const updateLocalRecords = (consistency: string, vehicleId: number, updatedRecords: MaintenanceRecord[]) => {
+    setRecordsByConsistency(prev => ({
+      ...prev,
+      [consistency]: {
+        ...prev[consistency],
+        [vehicleId]: updatedRecords
       }
-    };
-    if (selectedVehicle && selectedConsistency) {
-      loadRecords();
-    }
-  }, [selectedVehicle?.id, selectedConsistency, instance, accounts]);
+    }));
+  };
 
-  useEffect(() => {
-    localStorage.setItem('consistencies', JSON.stringify(consistencies));
-  }, [consistencies]);
-
-  useEffect(() => {
-    localStorage.setItem('localSystems', JSON.stringify(localSystems));
-  }, [localSystems]);
-
-  const saveRecords = async (updatedRecords: MaintenanceRecord[]) => {
+  // Fonction pour mettre à jour les enregistrements
+  const updateRecords = async (consistency: string, vehicleId: number, updatedRecords: MaintenanceRecord[]) => {
     try {
       if (!accounts || accounts.length === 0) {
         throw new Error("Aucun compte connecté");
@@ -527,14 +516,44 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         account: accounts[0],
       });
       maintenanceService.setAccessToken(response.accessToken);
-      await maintenanceService.saveMaintenanceRecords(selectedConsistency, selectedVehicle!.id, updatedRecords);
+      await maintenanceService.saveMaintenanceRecords(consistency, vehicleId, updatedRecords);
+      updateLocalRecords(consistency, vehicleId, updatedRecords);
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la sauvegarde des enregistrements');
     }
   };
 
+  // Fonction pour charger les enregistrements
+  const loadRecords = async (consistency: string, vehicleId: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      if (!accounts || accounts.length === 0) {
+        throw new Error("Aucun compte connecté");
+      }
+      const response = await instance.acquireTokenSilent({
+        scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
+        account: accounts[0],
+      });
+      maintenanceService.setAccessToken(response.accessToken);
+      const loadedRecords = await maintenanceService.getMaintenanceRecords(consistency, vehicleId);
+      setRecordsByConsistency(prev => ({
+        ...prev,
+        [consistency]: {
+          ...prev[consistency],
+          [vehicleId]: loadedRecords
+        }
+      }));
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors du chargement des enregistrements');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Mise à jour de handleAddOrEdit pour utiliser updateRecords
   const handleAddOrEdit = async () => {
-    if (selectedSystem && selectedOperation) {
+    if (selectedSystem && selectedOperation && selectedVehicle && selectedConsistency) {
       let updatedRecords: MaintenanceRecord[];
       if (editingRecord) {
         updatedRecords = currentRecords.map(record =>
@@ -545,7 +564,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       } else {
         const newRecord: MaintenanceRecord = {
           id: Date.now().toString(),
-          vehicleId: selectedVehicle!.id,
+          vehicleId: selectedVehicle.id,
           systemId: selectedSystem,
           operationId: selectedOperation,
           position: { x: 0, y: 0 },
@@ -555,34 +574,56 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         };
         updatedRecords = [...currentRecords, newRecord];
       }
-      setCurrentRecords(updatedRecords);
-      await saveRecords(updatedRecords);
+      await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
       resetForm();
       setTab(0);
     }
   };
 
-  const handleEditRecord = (record: MaintenanceRecord) => {
-    setEditingRecord(record);
-    setSelectedSystem(record.systemId);
-    setSelectedOperation(record.operationId);
-    setComment(record.comment || '');
-    setTab(1);
-  };
-
+  // Mise à jour de handleDeleteRecord pour utiliser updateRecords
   const handleDeleteRecord = async (recordId: string) => {
-    const updatedRecords = currentRecords.filter(record => record.id !== recordId);
-    setCurrentRecords(updatedRecords);
-    await saveRecords(updatedRecords);
-    setDeleteDialog({open: false, recordId: null});
+    if (selectedVehicle && selectedConsistency) {
+      const updatedRecords = currentRecords.filter(record => record.id !== recordId);
+      await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
+      setDeleteDialog({open: false, recordId: null});
+    }
   };
 
-  const resetForm = () => {
-    setEditingRecord(null);
-    setSelectedSystem('');
-    setSelectedOperation('');
-    setComment('');
+  // Fonction pour obtenir toutes les fiches en attente
+  const getPendingRecords = () => {
+    return Object.entries(recordsByConsistency).flatMap(([cons, vehicles]) =>
+      Object.entries(vehicles).flatMap(([vehicleId, records]) =>
+        records
+          .filter(record => record.status === 'en cours' || record.status === 'non commencé')
+          .map(record => ({
+            ...record,
+            consistency: cons,
+            vehicleId: Number(vehicleId)
+          }))
+      )
+    );
   };
+
+  // Mise à jour de useEffect pour charger les enregistrements
+  useEffect(() => {
+    if (selectedVehicle && selectedConsistency) {
+      loadRecords(selectedConsistency, selectedVehicle.id);
+    }
+  }, [selectedVehicle?.id, selectedConsistency]);
+
+  useEffect(() => {
+    localStorage.setItem('consistencies', JSON.stringify(consistencies));
+  }, [consistencies]);
+
+  useEffect(() => {
+    localStorage.setItem('localSystems', JSON.stringify(localSystems));
+  }, [localSystems]);
+
+  const currentRecords = (selectedConsistency && selectedVehicle)
+    ? (recordsByConsistency[selectedConsistency]?.[selectedVehicle.id] || [])
+    : [];
+
+  const pendingRecords = getPendingRecords();
 
   const handleSearchClick = (column: string, event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(prev => ({
@@ -655,20 +696,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       </Box>
     </Popover>
   );
-
-  const currentRecords = (selectedConsistency && selectedVehicle)
-    ? (recordsByConsistency[selectedConsistency]?.[selectedVehicle.id] || [])
-    : [];
-  const setCurrentRecords = (newRecords: MaintenanceRecord[]) => {
-    if (!selectedConsistency || !selectedVehicle) return;
-    setRecordsByConsistency(prev => ({
-      ...prev,
-      [selectedConsistency]: {
-        ...prev[selectedConsistency],
-        [selectedVehicle.id]: newRecords
-      }
-    }));
-  };
 
   const filteredRecords = currentRecords.filter(record => {
     const system = systems.find(s => s.id === record.systemId);
@@ -837,39 +864,33 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {Object.entries(recordsByConsistency).flatMap(([cons, vehicles]) =>
-                  Object.entries(vehicles).flatMap(([vehicleId, records]) =>
-                    records
-                      .filter(record => record.status === 'en cours' || record.status === 'non commencé')
-                      .map(record => {
-                        const system = currentSystems.find(s => s.id === record.systemId);
-                        const operation = system?.operations.find(o => o.id === record.operationId);
-                        return (
-                          <TableRow key={record.id}>
-                            <TableCell>{cons}</TableCell>
-                            <TableCell>Véhicule {vehicleId}</TableCell>
-                            <TableCell>{system?.name || record.systemId}</TableCell>
-                            <TableCell>{operation?.name || record.operationId}</TableCell>
-                            <TableCell>
-                              <span style={{
-                                display: 'inline-block',
-                                width: 14,
-                                height: 14,
-                                borderRadius: '50%',
-                                background: record.status === 'en cours' ? '#ff9800' : '#f44336',
-                                border: '1px solid #bbb',
-                                verticalAlign: 'middle',
-                                marginRight: 4
-                              }} />
-                              {record.status}
-                            </TableCell>
-                            <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
-                            <TableCell>{record.user || 'Inconnu'}</TableCell>
-                          </TableRow>
-                        );
-                      })
-                  )
-                )}
+                {pendingRecords.map(record => {
+                  const system = currentSystems.find(s => s.id === record.systemId);
+                  const operation = system?.operations.find(o => o.id === record.operationId);
+                  return (
+                    <TableRow key={record.id}>
+                      <TableCell>{record.consistency}</TableCell>
+                      <TableCell>Véhicule {record.vehicleId}</TableCell>
+                      <TableCell>{system?.name || record.systemId}</TableCell>
+                      <TableCell>{operation?.name || record.operationId}</TableCell>
+                      <TableCell>
+                        <span style={{
+                          display: 'inline-block',
+                          width: 14,
+                          height: 14,
+                          borderRadius: '50%',
+                          background: record.status === 'en cours' ? '#ff9800' : '#f44336',
+                          border: '1px solid #bbb',
+                          verticalAlign: 'middle',
+                          marginRight: 4
+                        }} />
+                        {record.status}
+                      </TableCell>
+                      <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
+                      <TableCell>{record.user || 'Inconnu'}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
@@ -1005,7 +1026,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   }
 
   if (showPdf.operationId && showPdf.type) {
-    // Trouver l'enregistrement correspondant à l'opération sélectionnée
     const record = recordsByConsistency[selectedConsistency][selectedVehicle!.id].find(r => r.operationId === showPdf.operationId);
     return (
       <PdfViewerSharepoint
@@ -1013,11 +1033,12 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         type={showPdf.type}
         onBack={() => setShowPdf({operationId: null, type: undefined})}
         setStatus={record ? async (status) => {
-          const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle!.id].map(r =>
-            r.id === record.id ? { ...r, status } : r
-          );
-          setCurrentRecords(updatedRecords);
-          await saveRecords(updatedRecords);
+          if (selectedVehicle && selectedConsistency) {
+            const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r =>
+              r.id === record.id ? { ...r, status } : r
+            );
+            await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
+          }
         } : undefined}
         currentStatus={record?.status || 'non commencé'}
         setTab={setTab}
@@ -1025,7 +1046,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     );
   }
   if (showViewer.url) {
-    // Trouver l'enregistrement correspondant à l'opération sélectionnée
     const record = recordsByConsistency[selectedConsistency][selectedVehicle!.id].find(r => r.operationId === selectedOperation);
     return (
       <ViewerModal
@@ -1033,11 +1053,12 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         onBack={() => setShowViewer({url: null})}
         recordId={record?.id}
         setStatus={record ? async (status) => {
-          const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle!.id].map(r =>
-            r.id === record.id ? { ...r, status } : r
-          );
-          setCurrentRecords(updatedRecords);
-          await saveRecords(updatedRecords);
+          if (selectedVehicle && selectedConsistency) {
+            const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r =>
+              r.id === record.id ? { ...r, status } : r
+            );
+            await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
+          }
         } : undefined}
         currentStatus={record?.status || 'non commencé'}
       />
