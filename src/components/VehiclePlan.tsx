@@ -539,6 +539,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
 
   // Fonction pour charger les enregistrements
   const loadRecords = async (consistency: string, vehicleId: number) => {
+    setLoading(true);
+    setError(null);
     try {
       if (!accounts || accounts.length === 0) {
         throw new Error("Aucun compte connecté");
@@ -558,6 +560,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       }));
     } catch (err: any) {
       setError(err.message || 'Erreur lors du chargement des enregistrements');
+    } finally {
+      setLoading(false);
     }
   };
 
