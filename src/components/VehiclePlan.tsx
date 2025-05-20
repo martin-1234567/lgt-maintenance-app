@@ -41,6 +41,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { fr } from 'date-fns/locale';
 import AddIcon from '@mui/icons-material/Add';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 interface VehiclePlanProps {
   vehicle: Vehicle;
@@ -841,6 +842,15 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     setNewOpName('');
   };
 
+  // Fonction pour rafraîchir tous les enregistrements
+  const refreshAllRecords = async () => {
+    for (const cons of Object.keys(recordsByConsistency)) {
+      for (const vehicleId of Object.keys(recordsByConsistency[cons])) {
+        await loadRecords(cons, Number(vehicleId));
+      }
+    }
+  };
+
   // 1. Choix de la consistance
   if (!selectedConsistency) {
     return (
@@ -868,20 +878,14 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
 
         {/* Historique des fiches de traçabilité en cours ou non commencées */}
         <Box sx={{ maxWidth: 800, mx: 'auto', mt: 8, px: 2 }}>
-          <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Fiches de traçabilité en attente</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+            <Typography variant="h5" sx={{ mb: 0, textAlign: 'center' }}>Fiches de traçabilité en attente</Typography>
+            <IconButton size="small" sx={{ ml: 1, color: '#888', p: 0.5 }} onClick={refreshAllRecords} title="Rafraîchir">
+              <RefreshIcon fontSize="small" />
+            </IconButton>
+          </Box>
           <TableContainer component={Paper}>
             <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Consistance</TableCell>
-                  <TableCell>Véhicule</TableCell>
-                  <TableCell>Système</TableCell>
-                  <TableCell>Opération</TableCell>
-                  <TableCell>Statut</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Utilisateur</TableCell>
-                </TableRow>
-              </TableHead>
               <TableBody>
                 {pendingRecords.map((record: PendingRecord) => (
                   <TableRow key={record.id}>
