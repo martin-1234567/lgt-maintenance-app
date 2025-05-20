@@ -606,8 +606,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
 
   // Fonction pour obtenir toutes les fiches en attente
   const getPendingRecords = (): PendingRecord[] => {
-    if (!selectedConsistency) return [];
-    
     return Object.entries(recordsByConsistency).flatMap(([cons, vehicles]) =>
       Object.entries(vehicles).flatMap(([vehicleId, records]) =>
         records
