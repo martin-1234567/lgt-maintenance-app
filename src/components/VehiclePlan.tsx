@@ -153,7 +153,13 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         console.log('Nom du système trouvé :', system.name);
         console.log('Nom du fichier PDF cherché :', traceabilityFileName);
         console.log('Fichiers SharePoint :', data.value.map((f: any) => f.name));
-        file = (data.value as any[]).find((f: any) => f.name === traceabilityFileName);
+        // Recherche du fichier (insensible à la casse et aux espaces)
+        file = (data.value as any[]).find((f: any) =>
+          f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
+        );
+        if (!file) {
+          console.log('Aucun fichier trouvé pour :', traceabilityFileName, 'dans', data.value.map((f: any) => f.name));
+        }
         if (file && file['@microsoft.graph.downloadUrl']) {
           setPdfUrl(file['@microsoft.graph.downloadUrl']);
           const pdfBlob = await fetch(file['@microsoft.graph.downloadUrl']);
