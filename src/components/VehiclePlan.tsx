@@ -541,6 +541,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           [vehicleId]: updatedRecords
         }
       }));
+      // Sauvegarde locale
+      localStorage.setItem(`records-${consistency}-${vehicleId}`, JSON.stringify(updatedRecords));
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la sauvegarde des enregistrements');
     }
@@ -551,6 +553,18 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     setLoading(true);
     setError(null);
     try {
+      // Lecture locale d'abord
+      const local = localStorage.getItem(`records-${consistency}-${vehicleId}`);
+      if (local) {
+        const localRecords = JSON.parse(local);
+        setRecordsByConsistency(prev => ({
+          ...prev,
+          [consistency]: {
+            ...prev[consistency],
+            [vehicleId]: localRecords
+          }
+        }));
+      }
       if (!accounts || accounts.length === 0) {
         throw new Error("Aucun compte connecté");
       }
