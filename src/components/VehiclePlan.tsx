@@ -894,12 +894,33 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     setNewOpName('');
   };
 
-  // Fonction pour rafraîchir tous les enregistrements
-  const refreshAllRecords = async () => {
-    for (const cons of Object.keys(recordsByConsistency)) {
-      for (const vehicleId of Object.keys(recordsByConsistency[cons])) {
-        await loadRecords(cons, Number(vehicleId));
+  // Ajout d'un useEffect pour charger tous les enregistrements au démarrage
+  useEffect(() => {
+    const loadAllRecords = async () => {
+      for (const cons of consistencies) {
+        for (const vehicle of VEHICLES) {
+          await loadRecords(cons, vehicle.id);
+        }
       }
+    };
+    loadAllRecords();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Se déclenche une seule fois au chargement initial
+
+  // Modification de la fonction refreshAllRecords pour qu'elle soit plus robuste
+  const refreshAllRecords = async () => {
+    setLoading(true);
+    try {
+      for (const cons of consistencies) {
+        for (const vehicle of VEHICLES) {
+          await loadRecords(cons, vehicle.id);
+        }
+      }
+    } catch (err) {
+      console.error('Erreur lors du rafraîchissement des enregistrements:', err);
+      setError('Erreur lors du rafraîchissement des enregistrements');
+    } finally {
+      setLoading(false);
     }
   };
 
