@@ -630,7 +630,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           position: { x: 0, y: 0 },
           timestamp: new Date(),
           comment,
-          user: userName
+          user: userName,
+          status: 'non commencé'
         };
         updatedRecords = [...currentRecords, newRecord];
       }
