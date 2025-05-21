@@ -115,8 +115,9 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
       const token = await getAccessToken();
       const SHAREPOINT_SITE_ID = 'arlingtonfleetfrance.sharepoint.com,3d42766f-7bce-4b8e-92e0-70272ae2b95e,cfa621f3-5013-433c-9d14-3c519f11bb8d';
       const SHAREPOINT_DRIVE_ID = 'b!b3ZCPc57jkuS4HAnKuK5XvMhps8TUDxDnRQ8UZ8Ru426aMo8mBCBTrOSBU5EbQE4';
+      const SHAREPOINT_FOLDER_ID = '01UIJT6YJKMFDSJS4PPJDKVHBTW3MXZ5DO';
       const res = await fetch(
-        `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/root:/Documents partages/AFF-Projets/Le Grand Tour/Etude Maintenance/40.DOCUMENTATION/44-Signature:/children`,
+        `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${SHAREPOINT_FOLDER_ID}/children`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
