@@ -927,7 +927,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         {/* Historique des fiches de traçabilité en cours ou non commencées */}
         <Box sx={{ maxWidth: 800, mx: 'auto', mt: 8, px: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-            <Typography variant="h5" sx={{ mb: 0, textAlign: 'center' }}>Fiches de traçabilité en attente</Typography>
+            <Typography variant="h5" sx={{ mb: 0, textAlign: 'center' }}>Opérations en attente</Typography>
             <IconButton size="small" sx={{ ml: 1, color: '#888', p: 0.5 }} onClick={refreshAllRecords} title="Rafraîchir">
               <RefreshIcon fontSize="small" />
             </IconButton>
@@ -938,7 +938,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                 {pendingRecords.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} align="center" style={{ color: '#888' }}>
-                      Aucune fiche en attente
+                      Aucune opération en attente
                     </TableCell>
                   </TableRow>
                 ) : (
