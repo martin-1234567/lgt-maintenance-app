@@ -141,20 +141,19 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
           setError('protocole non disponible');
         }
       } else {
-        // Nouvelle logique pour les fiches de traçabilité
+        // Recherche fiche de traçabilité par nom du système
         const system = systems.find((s: System) => s.operations.some((o: { id: string }) => o.id === operationCode));
         if (!system) {
           setError('Système non trouvé');
           return;
         }
-        
-        // Formatage du nom du système et construction du nom de la fiche de traçabilité
         const formattedSystemName = formatSystemName(system.name);
         const traceabilityFileName = `FT-LGT-${formattedSystemName}.pdf`;
-        
-        // Recherche du fichier
+        // Ajout des logs de debug
+        console.log('Nom du système trouvé :', system.name);
+        console.log('Nom du fichier PDF cherché :', traceabilityFileName);
+        console.log('Fichiers SharePoint :', data.value.map((f: any) => f.name));
         file = (data.value as any[]).find((f: any) => f.name === traceabilityFileName);
-        
         if (file && file['@microsoft.graph.downloadUrl']) {
           setPdfUrl(file['@microsoft.graph.downloadUrl']);
           const pdfBlob = await fetch(file['@microsoft.graph.downloadUrl']);
