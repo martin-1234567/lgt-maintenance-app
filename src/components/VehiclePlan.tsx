@@ -553,18 +553,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     setLoading(true);
     setError(null);
     try {
-      // Lecture locale d'abord
-      const local = localStorage.getItem(`records-${consistency}-${vehicleId}`);
-      if (local) {
-        const localRecords = JSON.parse(local);
-        setRecordsByConsistency(prev => ({
-          ...prev,
-          [consistency]: {
-            ...prev[consistency],
-            [vehicleId]: localRecords
-          }
-        }));
-      }
+      // Les données sont toujours rechargées depuis SharePoint
       if (!accounts || accounts.length === 0) {
         throw new Error("Aucun compte connecté");
       }
