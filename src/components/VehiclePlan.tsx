@@ -152,8 +152,16 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
           const workbook = XLSX.read(arrayBuffer, { type: 'array' });
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[firstSheetName];
-          const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-          setExcelData(data as any[][]);
+          const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as (string | undefined)[][];
+          const headerRow = excelData[0] as string[];
+          const statusColIndex = headerRow.findIndex((col) => col && col.toLowerCase().includes('statut'));
+          let statusValue: 'non commencé' | 'en cours' | 'terminé' = 'non commencé';
+          if (statusColIndex !== -1 && excelData[1] && typeof excelData[1][statusColIndex] === 'string') {
+            const cellValue = (excelData[1][statusColIndex] as string).toLowerCase();
+            if (cellValue.includes('en cours')) statusValue = 'en cours';
+            else if (cellValue.includes('terminé')) statusValue = 'terminé';
+          }
+          setExcelData(excelData);
         } else {
           setError('fiche de traçabilité non disponible');
         }
@@ -551,7 +559,44 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         account: accounts[0],
       });
       maintenanceService.setAccessToken(response.accessToken);
-      const records = await maintenanceService.getMaintenanceRecords(consistency, vehicleId);
+      let records = await maintenanceService.getMaintenanceRecords(consistency, vehicleId);
+
+      // Synchronisation du statut avec la colonne Excel
+      for (let i = 0; i < records.length; i++) {
+        const record = records[i];
+        const opCode = record.operationId;
+        const folderPath = '/AFF-Projets/Le Grand Tour/Etude Maintenance/40.DOCUMENTATION/44-Signature';
+        const filesRes = await fetch(
+          `https://graph.microsoft.com/v1.0/sites/arlingtonfleetfrance.sharepoint.com,3d42766f-7bce-4b8e-92e0-70272ae2b95e,cfa621f3-5013-433c-9d14-3c519f11bb8d/drive/root:${folderPath}:/children`,
+          { headers: { Authorization: `Bearer ${response.accessToken}` } }
+        );
+        const filesData = await filesRes.json();
+        let file = (filesData.value as any[]).find((f: any) => f.name === `FT-LGT-${opCode}.xlsx`);
+        if (!file) {
+          file = (filesData.value as any[]).find((f: any) => f.name.includes(opCode) && f.name.endsWith('.xlsx'));
+        }
+        if (file && file['@microsoft.graph.downloadUrl']) {
+          try {
+            const excelBlob = await fetch(file['@microsoft.graph.downloadUrl']);
+            const arrayBuffer = await excelBlob.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as (string | undefined)[][];
+            const headerRow = excelData[0] as string[];
+            const statusColIndex = headerRow.findIndex((col) => col && col.toLowerCase().includes('statut'));
+            let statusValue: 'non commencé' | 'en cours' | 'terminé' = 'non commencé';
+            if (statusColIndex !== -1 && excelData[1] && typeof excelData[1][statusColIndex] === 'string') {
+              const cellValue = (excelData[1][statusColIndex] as string).toLowerCase();
+              if (cellValue.includes('en cours')) statusValue = 'en cours';
+              else if (cellValue.includes('terminé')) statusValue = 'terminé';
+            }
+            records[i].status = statusValue;
+          } catch (e) {
+            // Si erreur de lecture Excel, on laisse le statut existant
+          }
+        }
+      }
       setRecordsByConsistency(prev => ({
         ...prev,
         [consistency]: {
