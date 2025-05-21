@@ -210,50 +210,15 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
           <Box sx={{ color: 'text.primary', fontSize: 24, textAlign: 'center', mt: 10 }}>Chargement…</Box>
         )}
         {!loading && type === 'tracabilite' && (
-          excelData ? (
-            <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 2 }}>
-                <Button
-                  variant={currentStatus === 'en cours' ? 'contained' : 'outlined'}
-                  color="warning"
-                  onClick={async () => {
-                    if (setStatus) {
-                      await setStatus('en cours');
-                      if (setTab) setTab(0);
-                      onBack();
-                    }
-                  }}
-                >
-                  Sauvegarder (en cours)
-                </Button>
-                <Button
-                  variant={currentStatus === 'terminé' ? 'contained' : 'outlined'}
-                  color="success"
-                  onClick={async () => {
-                    if (setStatus) {
-                      await setStatus('terminé');
-                      if (setTab) setTab(0);
-                      onBack();
-                    }
-                  }}
-                >
-                  Terminer
-                </Button>
-              </Box>
-              <Box sx={{ overflow: 'auto', maxHeight: 800 }}>
-                <Table>
-                  <TableBody>
-                    {excelData.map((row, i) => (
-                      <TableRow key={i}>
-                        {row.map((cell, j) => (
-                          <TableCell key={j}>{cell}</TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Box>
-            </Box>
+          objectUrl ? (
+            <iframe
+              src={objectUrl}
+              title={operationCode + '-' + type}
+              width={isMobile ? '100vw' : '100%'}
+              height={isMobile ? '100vh' : '800px'}
+              style={{ border: 'none', maxWidth: isMobile ? '100vw' : undefined, display: 'block', minHeight: isMobile ? '100vh' : undefined }}
+              allowFullScreen
+            />
           ) : (
             <Box sx={{ color: 'red', fontWeight: 'bold', fontSize: '1.1rem', mt: 10, textAlign: 'center' }}>
               fiche de traçabilité non disponible
