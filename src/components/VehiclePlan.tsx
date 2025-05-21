@@ -72,8 +72,9 @@ interface PdfViewerSharepointProps {
   setStatus?: (status: 'en cours' | 'terminé') => void;
   currentStatus?: 'non commencé' | 'en cours' | 'terminé';
   setTab?: (tab: number) => void;
+  systems: System[];
 }
-function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentStatus, setTab }: PdfViewerSharepointProps) {
+function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentStatus, setTab, systems }: PdfViewerSharepointProps) {
   const { instance, accounts } = useMsal();
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [excelUrl, setExcelUrl] = useState<string | null>(null);
@@ -82,6 +83,11 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [excelData, setExcelData] = useState<any[][] | null>(null);
   const isMobile = useMediaQuery('(max-width:600px)');
+
+  // Fonction pour formater le nom du système
+  const formatSystemName = (name: string): string => {
+    return name.replace(/\./g, '-');
+  };
 
   const getAccessToken = async () => {
     if (!accounts || accounts.length === 0) {
@@ -135,33 +141,26 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
           setError('protocole non disponible');
         }
       } else {
-        // Nouvelle logique de recherche plus souple
-        file = (data.value as any[]).find((f: any) =>
-          f.name === `FT-LGT-${operationCode}.xlsx`
-        );
-        if (!file) {
-          file = (data.value as any[]).find((f: any) =>
-            f.name.includes(operationCode) && f.name.endsWith('.xlsx')
-          );
+        // Nouvelle logique pour les fiches de traçabilité
+        const system = systems.find((s: System) => s.operations.some((o: { id: string }) => o.id === operationCode));
+        if (!system) {
+          setError('Système non trouvé');
+          return;
         }
         
+        // Formatage du nom du système et construction du nom de la fiche de traçabilité
+        const formattedSystemName = formatSystemName(system.name);
+        const traceabilityFileName = `FT-LGT-${formattedSystemName}.pdf`;
+        
+        // Recherche du fichier
+        file = (data.value as any[]).find((f: any) => f.name === traceabilityFileName);
+        
         if (file && file['@microsoft.graph.downloadUrl']) {
-          // Télécharger le fichier Excel, lire avec SheetJS et stocker les données
-          const excelBlob = await fetch(file['@microsoft.graph.downloadUrl']);
-          const arrayBuffer = await excelBlob.arrayBuffer();
-          const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as (string | undefined)[][];
-          const headerRow = excelData[0] as string[];
-          const statusColIndex = headerRow.findIndex((col) => col && col.toLowerCase().includes('statut'));
-          let statusValue: 'non commencé' | 'en cours' | 'terminé' = 'non commencé';
-          if (statusColIndex !== -1 && excelData[1] && typeof excelData[1][statusColIndex] === 'string') {
-            const cellValue = (excelData[1][statusColIndex] as string).toLowerCase();
-            if (cellValue.includes('en cours')) statusValue = 'en cours';
-            else if (cellValue.includes('terminé')) statusValue = 'terminé';
-          }
-          setExcelData(excelData);
+          setPdfUrl(file['@microsoft.graph.downloadUrl']);
+          const pdfBlob = await fetch(file['@microsoft.graph.downloadUrl']);
+          const blob = await pdfBlob.blob();
+          const url = URL.createObjectURL(blob);
+          setObjectUrl(url);
         } else {
           setError('fiche de traçabilité non disponible');
         }
@@ -1142,6 +1141,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         } : undefined}
         currentStatus={record?.status || 'non commencé'}
         setTab={setTab}
+        systems={systems}
       />
     );
   }
