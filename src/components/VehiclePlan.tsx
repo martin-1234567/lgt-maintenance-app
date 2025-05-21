@@ -525,6 +525,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   // Fonction pour mettre à jour les enregistrements
   const updateRecords = async (consistency: string, vehicleId: number, updatedRecords: MaintenanceRecord[]) => {
     try {
+      console.log('[DEBUG] Début sauvegarde SharePoint', {consistency, vehicleId, updatedRecords});
       if (!accounts || accounts.length === 0) {
         throw new Error("Aucun compte connecté");
       }
@@ -541,10 +542,12 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           [vehicleId]: updatedRecords
         }
       }));
-      // Sauvegarde locale
+      // Sauvegarde locale (optionnelle)
       localStorage.setItem(`records-${consistency}-${vehicleId}`, JSON.stringify(updatedRecords));
+      console.log('[DEBUG] Sauvegarde SharePoint terminée', {consistency, vehicleId});
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la sauvegarde des enregistrements');
+      console.error('[DEBUG] Erreur de sauvegarde SharePoint', err);
     }
   };
 
