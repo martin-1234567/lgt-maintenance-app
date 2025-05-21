@@ -903,6 +903,16 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     }
   };
 
+  // Ajout d'un effet pour sauvegarder automatiquement tous les enregistrements d'une consistance/véhicule dès qu'ils changent
+  useEffect(() => {
+    if (selectedConsistency && selectedVehicle) {
+      const records = recordsByConsistency[selectedConsistency]?.[selectedVehicle.id] || [];
+      // On sauvegarde tout l'état dès qu'il change
+      updateRecords(selectedConsistency, selectedVehicle.id, records);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordsByConsistency, selectedConsistency, selectedVehicle]);
+
   // 1. Choix de la consistance
   if (!selectedConsistency) {
     return (
