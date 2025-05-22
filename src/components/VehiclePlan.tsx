@@ -168,15 +168,15 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         if (file) {
           console.log('Fichier SharePoint trouvé (protocole) :', file);
           let sourcedoc = '';
-          if (file.parentReference && file.parentReference.path && file.name) {
-            sourcedoc = file.parentReference.path.replace('/drive/root:', '') + '/' + file.name;
-          } else if (file.webUrl) {
+          if (file.webUrl) {
             const url = new URL(file.webUrl);
             sourcedoc = url.pathname;
+          } else if (file.parentReference && file.parentReference.path && file.name) {
+            sourcedoc = file.parentReference.path.replace('/drive/root:', '') + '/' + file.name;
           } else {
             sourcedoc = file.id;
           }
-          console.log('Chemin relatif SharePoint utilisé pour sourcedoc :', sourcedoc);
+          console.log('Chemin SharePoint utilisé pour sourcedoc :', sourcedoc);
           const viewerUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${encodeURIComponent(sourcedoc)}&action=view`;
           console.log('URL générée pour l\'iframe (protocole) :', viewerUrl);
           setObjectUrl(viewerUrl);
@@ -197,15 +197,15 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         if (file) {
           console.log('Fichier SharePoint trouvé (traçabilité) :', file);
           let sourcedoc = '';
-          if (file.parentReference && file.parentReference.path && file.name) {
-            sourcedoc = file.parentReference.path.replace('/drive/root:', '') + '/' + file.name;
-          } else if (file.webUrl) {
+          if (file.webUrl) {
             const url = new URL(file.webUrl);
             sourcedoc = url.pathname;
+          } else if (file.parentReference && file.parentReference.path && file.name) {
+            sourcedoc = file.parentReference.path.replace('/drive/root:', '') + '/' + file.name;
           } else {
             sourcedoc = file.id;
           }
-          console.log('Chemin relatif SharePoint utilisé pour sourcedoc :', sourcedoc);
+          console.log('Chemin SharePoint utilisé pour sourcedoc :', sourcedoc);
           const officeUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${encodeURIComponent(sourcedoc)}&action=edit`;
           console.log('URL générée pour l\'iframe (traçabilité) :', officeUrl);
           setObjectUrl(officeUrl);
