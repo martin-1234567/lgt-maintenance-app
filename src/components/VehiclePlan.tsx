@@ -114,19 +114,15 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
 
   const handleStatusChange = async (newStatus: 'en cours' | 'terminé'): Promise<void> => {
     if (type !== 'tracabilite') return;
-    
     setSaving(true);
     try {
       // Mettre à jour le statut dans l'application
       if (setStatus) {
         await setStatus(newStatus);
       }
-
       // Attendre un peu pour s'assurer que les modifications sont sauvegardées
       await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Fermer la fiche de traçabilité
-      onBack();
+      // (onBack sera appelé par le parent)
     } catch (err) {
       console.error('Erreur lors de la mise à jour du statut:', err);
       setError('Erreur lors de la mise à jour du statut');
@@ -1143,6 +1139,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
               r.id === record.id ? { ...r, status } : r
             );
             await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
+            // Fermer la fiche APRÈS la mise à jour
+            setShowPdf({operationId: null, type: undefined});
           }
         } : undefined}
         currentStatus={record?.status || 'non commencé'}
