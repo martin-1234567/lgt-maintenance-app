@@ -114,70 +114,23 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
     
     setSaving(true);
     try {
-      const token = await getAccessToken();
-      const SHAREPOINT_SITE_ID = 'arlingtonfleetfrance.sharepoint.com,3d42766f-7bce-4b8e-92e0-70272ae2b95e,cfa621f3-5013-433c-9d14-3c519f11bb8d';
-      const SHAREPOINT_DRIVE_ID = 'b!b3ZCPc57jkuS4HAnKuK5XvMhps8TUDxDnRQ8UZ8Ru426aMo8mBCBTrOSBU5EbQE4';
-      const SHAREPOINT_FOLDER_ID = '01UIJT6YJKMFDSJS4PPJDKVHBTW3MXZ5DO';
-
-      // 1. Récupérer le fichier Excel
-      const res = await fetch(
-        `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${SHAREPOINT_FOLDER_ID}/children`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const data = await res.json();
-      
-      // Trouver le fichier Excel correspondant
-      const system = systems.find((s: System) => s.operations.some((o: { id: string }) => o.id === operationCode));
-      if (!system) {
-        throw new Error('Système non trouvé');
-      }
-      const formattedSystemName = formatSystemName(system.name);
-      const traceabilityFileName = `FT-LGT-${formattedSystemName}.xlsx`;
-      
-      const file = (data.value as any[]).find((f: any) =>
-        f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
-      );
-
-      if (!file) {
-        throw new Error('Fichier de traçabilité non trouvé');
+      // Mettre à jour le statut dans l'application
+      if (setStatus) {
+        await setStatus(newStatus);
       }
 
-      // 2. Si nous avons déjà un lien de partage, on le réutilise
-      if (objectUrl && objectUrl.includes('WopiFrame.aspx')) {
-        // On met juste à jour le statut dans l'application
-        if (setStatus) {
-          await setStatus(newStatus);
-        }
-      } else {
-        // Sinon, on crée un nouveau lien de partage
-        const shareResponse = await fetch(
-          `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${file.id}/createLink`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              type: 'edit',
-              scope: 'anonymous'
-            })
+      // Attendre un peu pour s'assurer que les modifications sont sauvegardées
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Rafraîchir l'iframe pour s'assurer que les modifications sont bien sauvegardées
+      if (iframeRef.current) {
+        const currentSrc = iframeRef.current.src;
+        iframeRef.current.src = '';
+        setTimeout(() => {
+          if (iframeRef.current) {
+            iframeRef.current.src = currentSrc;
           }
-        );
-        const shareData = await shareResponse.json();
-
-        // 3. Mettre à jour l'URL de l'iframe avec le mode édition
-        const officeUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${file.id}&action=edit&wdInitialSession=${encodeURIComponent(JSON.stringify({
-          access_token: token,
-          share_url: shareData.link.webUrl
-        }))}`;
-
-        setObjectUrl(officeUrl);
-
-        // 4. Mettre à jour le statut dans l'application
-        if (setStatus) {
-          await setStatus(newStatus);
-        }
+        }, 100);
       }
     } catch (err) {
       console.error('Erreur lors de la mise à jour du statut:', err);
@@ -212,9 +165,10 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
             f.name.startsWith(operationCode + '-') && f.name.endsWith('.pdf')
           );
         }
-        if (file && file['@microsoft.graph.downloadUrl']) {
-          setPdfUrl(file['@microsoft.graph.downloadUrl']);
-          setObjectUrl(file['@microsoft.graph.downloadUrl']);
+        if (file) {
+          // Utiliser l'URL de visualisation SharePoint pour les PDF
+          const viewerUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${file.id}&action=view`;
+          setObjectUrl(viewerUrl);
         } else {
           setError('protocole non disponible');
         }
@@ -232,8 +186,31 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
           f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
         );
 
-        if (file && file['@microsoft.graph.downloadUrl']) {
-          setObjectUrl(file['@microsoft.graph.downloadUrl']);
+        if (file) {
+          // Créer un lien de partage pour l'édition
+          const shareResponse = await fetch(
+            `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${file.id}/createLink`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                type: 'edit',
+                scope: 'anonymous'
+              })
+            }
+          );
+          const shareData = await shareResponse.json();
+
+          // Utiliser l'URL d'édition SharePoint pour les PDF
+          const officeUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${file.id}&action=edit&wdInitialSession=${encodeURIComponent(JSON.stringify({
+            access_token: token,
+            share_url: shareData.link.webUrl
+          }))}`;
+
+          setObjectUrl(officeUrl);
         } else {
           setError('fiche de traçabilité non disponible');
         }
