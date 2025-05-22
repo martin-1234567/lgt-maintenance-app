@@ -42,6 +42,9 @@ import { fr } from 'date-fns/locale';
 import AddIcon from '@mui/icons-material/Add';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import { pdfjs, Document, Page } from 'react-pdf';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
 interface VehiclePlanProps {
   vehicle: Vehicle;
@@ -167,12 +170,9 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         }
         if (file) {
           console.log('Fichier SharePoint trouvé (protocole) :', file);
-          if (file.webUrl) {
-            setObjectUrl(file.webUrl + '?web=1');
-            console.log('Affichage du PDF via webUrl+?web=1 :', file.webUrl + '?web=1');
-          } else if (file['@microsoft.graph.downloadUrl']) {
+          if (file['@microsoft.graph.downloadUrl']) {
             setObjectUrl(file['@microsoft.graph.downloadUrl']);
-            console.log('Affichage du PDF via downloadUrl :', file['@microsoft.graph.downloadUrl']);
+            console.log('Affichage du PDF via PDF.js :', file['@microsoft.graph.downloadUrl']);
           } else {
             setError('Impossible d\'afficher le PDF');
           }
@@ -192,12 +192,9 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         );
         if (file) {
           console.log('Fichier SharePoint trouvé (traçabilité) :', file);
-          if (file.webUrl) {
-            setObjectUrl(file.webUrl + '?web=1');
-            console.log('Affichage du PDF via webUrl+?web=1 :', file.webUrl + '?web=1');
-          } else if (file['@microsoft.graph.downloadUrl']) {
+          if (file['@microsoft.graph.downloadUrl']) {
             setObjectUrl(file['@microsoft.graph.downloadUrl']);
-            console.log('Affichage du PDF via downloadUrl :', file['@microsoft.graph.downloadUrl']);
+            console.log('Affichage du PDF via PDF.js :', file['@microsoft.graph.downloadUrl']);
           } else {
             setError('Impossible d\'afficher le PDF');
           }
@@ -263,36 +260,12 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         {loading && (
           <Box sx={{ color: 'text.primary', fontSize: 24, textAlign: 'center', mt: 10 }}>Chargement…</Box>
         )}
-        {!loading && type === 'tracabilite' && (
+        {!loading && (type === 'tracabilite' || type === 'protocole') && (
           objectUrl ? (
-            <iframe
-              ref={iframeRef}
-              src={objectUrl}
-              title={operationCode + '-' + type}
-              width={isMobile ? '100vw' : '100%'}
-              height={isMobile ? '100vh' : '800px'}
-              style={{ border: 'none', maxWidth: isMobile ? '100vw' : undefined, display: 'block', minHeight: isMobile ? '100vh' : undefined }}
-              allowFullScreen
-            />
+            <PDFViewer url={objectUrl} />
           ) : (
             <Box sx={{ color: 'red', fontWeight: 'bold', fontSize: '1.1rem', mt: 10, textAlign: 'center' }}>
-              fiche de traçabilité non disponible
-            </Box>
-          )
-        )}
-        {!loading && type === 'protocole' && (
-          objectUrl ? (
-            <iframe
-              src={objectUrl}
-              title={operationCode + '-' + type}
-              width={isMobile ? '100vw' : '100%'}
-              height={isMobile ? '100vh' : '800px'}
-              style={{ border: 'none', maxWidth: isMobile ? '100vw' : undefined, display: 'block', minHeight: isMobile ? '100vh' : undefined }}
-              allowFullScreen
-            />
-          ) : (
-            <Box sx={{ color: 'red', fontWeight: 'bold', fontSize: '1.1rem', mt: 10, textAlign: 'center' }}>
-              protocole non disponible
+              {type === 'tracabilite' ? 'fiche de traçabilité non disponible' : 'protocole non disponible'}
             </Box>
           )
         )}
@@ -1535,6 +1508,28 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         </Dialog>
       </Box>
     </LocalizationProvider>
+  );
+};
+
+interface PDFViewerProps {
+  url: string;
+}
+const PDFViewer: React.FC<PDFViewerProps> = ({ url }) => {
+  const [numPages, setNumPages] = React.useState<number | null>(null);
+  const [pageNumber, setPageNumber] = React.useState(1);
+  return (
+    <div style={{ width: '100%', height: '80vh', overflow: 'auto', background: '#222' }}>
+      <Document
+        file={url}
+        onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+        loading={<div style={{ color: '#fff', textAlign: 'center', marginTop: 40 }}>Chargement du PDF…</div>}
+        error={<div style={{ color: 'red', textAlign: 'center', marginTop: 40 }}>Erreur de chargement du PDF</div>}
+      >
+        {Array.from(new Array(numPages), (el, index) => (
+          <Page key={`page_${index + 1}`} pageNumber={index + 1} width={900} />
+        ))}
+      </Document>
+    </div>
   );
 };
 
