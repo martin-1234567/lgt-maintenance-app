@@ -167,7 +167,10 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         }
         if (file) {
           console.log('Fichier SharePoint trouvé (protocole) :', file);
-          if (file['@microsoft.graph.downloadUrl']) {
+          if (file.webUrl) {
+            setObjectUrl(file.webUrl + '?web=1');
+            console.log('Affichage du PDF via webUrl+?web=1 :', file.webUrl + '?web=1');
+          } else if (file['@microsoft.graph.downloadUrl']) {
             setObjectUrl(file['@microsoft.graph.downloadUrl']);
             console.log('Affichage du PDF via downloadUrl :', file['@microsoft.graph.downloadUrl']);
           } else {
@@ -189,7 +192,10 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         );
         if (file) {
           console.log('Fichier SharePoint trouvé (traçabilité) :', file);
-          if (file['@microsoft.graph.downloadUrl']) {
+          if (file.webUrl) {
+            setObjectUrl(file.webUrl + '?web=1');
+            console.log('Affichage du PDF via webUrl+?web=1 :', file.webUrl + '?web=1');
+          } else if (file['@microsoft.graph.downloadUrl']) {
             setObjectUrl(file['@microsoft.graph.downloadUrl']);
             console.log('Affichage du PDF via downloadUrl :', file['@microsoft.graph.downloadUrl']);
           } else {
