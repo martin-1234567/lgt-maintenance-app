@@ -158,6 +158,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
+      console.log('Fichiers trouvés dans ESSAI OUTILS :', data.value);
       let file;
       if (type === 'protocole') {
         file = (data.value as any[]).find((f: any) =>
@@ -285,6 +286,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
                     { headers: { Authorization: `Bearer ${token}` } }
                   );
                   const data = await res.json();
+                  console.log('Fichiers trouvés dans ESSAI OUTILS :', data.value);
                   let file;
                   if (type === 'protocole') {
                     file = (data.value as any[]).find((f: any) =>
