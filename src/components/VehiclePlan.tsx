@@ -166,14 +166,21 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
           );
         }
         if (file) {
-          // Utiliser l'URL de visualisation SharePoint pour les PDF
-          const viewerUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${file.id}&action=view`;
+          console.log('Fichier SharePoint trouvé (protocole) :', file);
+          let sourcedoc = '';
+          if (file.webUrl) {
+            const url = new URL(file.webUrl);
+            sourcedoc = url.pathname;
+          } else {
+            sourcedoc = file.id;
+          }
+          const viewerUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${encodeURIComponent(sourcedoc)}&action=view`;
+          console.log('URL générée pour l\'iframe (protocole) :', viewerUrl);
           setObjectUrl(viewerUrl);
         } else {
           setError('protocole non disponible');
         }
       } else if (type === 'tracabilite') {
-        // Recherche du PDF de traçabilité
         const system = systems.find((s: System) => s.operations.some((o: { id: string }) => o.id === operationCode));
         if (!system) {
           setError('Système non trouvé');
@@ -181,35 +188,20 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         }
         const formattedSystemName = formatSystemName(system.name);
         const traceabilityFileName = `FT-LGT-${formattedSystemName}.pdf`;
-
         file = (data.value as any[]).find((f: any) =>
           f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
         );
-
         if (file) {
-          // Créer un lien de partage pour l'édition
-          const shareResponse = await fetch(
-            `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${file.id}/createLink`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                type: 'edit',
-                scope: 'anonymous'
-              })
-            }
-          );
-          const shareData = await shareResponse.json();
-
-          // Utiliser l'URL d'édition SharePoint pour les PDF
-          const officeUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${file.id}&action=edit&wdInitialSession=${encodeURIComponent(JSON.stringify({
-            access_token: token,
-            share_url: shareData.link.webUrl
-          }))}`;
-
+          console.log('Fichier SharePoint trouvé (traçabilité) :', file);
+          let sourcedoc = '';
+          if (file.webUrl) {
+            const url = new URL(file.webUrl);
+            sourcedoc = url.pathname;
+          } else {
+            sourcedoc = file.id;
+          }
+          const officeUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${encodeURIComponent(sourcedoc)}&action=edit`;
+          console.log('URL générée pour l\'iframe (traçabilité) :', officeUrl);
           setObjectUrl(officeUrl);
         } else {
           setError('fiche de traçabilité non disponible');
