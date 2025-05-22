@@ -159,6 +159,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
       );
       const data = await res.json();
       console.log('Fichiers trouvés dans ESSAI OUTILS :', data.value);
+      data.value.forEach((f: any) => console.log('Nom du fichier trouvé :', f.name));
       let file;
       if (type === 'protocole') {
         file = (data.value as any[]).find((f: any) =>
@@ -190,6 +191,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         }
         const formattedSystemName = formatSystemName(system.name);
         const traceabilityFileName = `FT-LGT-${formattedSystemName}.pdf`;
+        console.log('Nom attendu (traceabilityFileName) :', traceabilityFileName);
         file = (data.value as any[]).find((f: any) =>
           f.parentReference && f.parentReference.path && f.parentReference.path.includes('ESSAI OUTILS') &&
           f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
@@ -287,6 +289,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
                   );
                   const data = await res.json();
                   console.log('Fichiers trouvés dans ESSAI OUTILS :', data.value);
+                  data.value.forEach((f: any) => console.log('Nom du fichier trouvé :', f.name));
                   let file;
                   if (type === 'protocole') {
                     file = (data.value as any[]).find((f: any) =>
@@ -304,6 +307,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
                     if (!system) throw new Error('Système non trouvé');
                     const formattedSystemName = formatSystemName(system.name);
                     const traceabilityFileName = `FT-LGT-${formattedSystemName}.pdf`;
+                    console.log('Nom attendu (traceabilityFileName) :', traceabilityFileName);
                     file = (data.value as any[]).find((f: any) =>
                       f.parentReference && f.parentReference.path && f.parentReference.path.includes('ESSAI OUTILS') &&
                       f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
