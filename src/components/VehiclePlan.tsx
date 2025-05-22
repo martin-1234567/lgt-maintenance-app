@@ -161,10 +161,12 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
       let file;
       if (type === 'protocole') {
         file = (data.value as any[]).find((f: any) =>
+          f.parentReference && f.parentReference.path && f.parentReference.path.includes('ESSAI OUTILS') &&
           f.name.startsWith(operationCode + '-') && f.name.endsWith('.pdf') && f.name.toLowerCase().includes('protocole')
         );
         if (!file) {
           file = (data.value as any[]).find((f: any) =>
+            f.parentReference && f.parentReference.path && f.parentReference.path.includes('ESSAI OUTILS') &&
             f.name.startsWith(operationCode + '-') && f.name.endsWith('.pdf')
           );
         }
@@ -188,6 +190,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         const formattedSystemName = formatSystemName(system.name);
         const traceabilityFileName = `FT-LGT-${formattedSystemName}.pdf`;
         file = (data.value as any[]).find((f: any) =>
+          f.parentReference && f.parentReference.path && f.parentReference.path.includes('ESSAI OUTILS') &&
           f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
         );
         if (file) {
@@ -285,10 +288,12 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
                   let file;
                   if (type === 'protocole') {
                     file = (data.value as any[]).find((f: any) =>
+                      f.parentReference && f.parentReference.path && f.parentReference.path.includes('ESSAI OUTILS') &&
                       f.name.startsWith(operationCode + '-') && f.name.endsWith('.pdf') && f.name.toLowerCase().includes('protocole')
                     );
                     if (!file) {
                       file = (data.value as any[]).find((f: any) =>
+                        f.parentReference && f.parentReference.path && f.parentReference.path.includes('ESSAI OUTILS') &&
                         f.name.startsWith(operationCode + '-') && f.name.endsWith('.pdf')
                       );
                     }
@@ -298,6 +303,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
                     const formattedSystemName = formatSystemName(system.name);
                     const traceabilityFileName = `FT-LGT-${formattedSystemName}.pdf`;
                     file = (data.value as any[]).find((f: any) =>
+                      f.parentReference && f.parentReference.path && f.parentReference.path.includes('ESSAI OUTILS') &&
                       f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
                     );
                   }
@@ -624,7 +630,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       for (let i = 0; i < records.length; i++) {
         const record = records[i];
         const opCode = record.operationId;
-        const folderPath = '/AFF-Projets/Le Grand Tour/Etude Maintenance/40.DOCUMENTATION/44-Signature';
+        const folderPath = '/AFF-Projets/Le Grand Tour/Etude Maintenance/40.DOCUMENTATION/ESSAI OUTILS';
         const filesRes = await fetch(
           `https://graph.microsoft.com/v1.0/sites/arlingtonfleetfrance.sharepoint.com,3d42766f-7bce-4b8e-92e0-70272ae2b95e,cfa621f3-5013-433c-9d14-3c519f11bb8d/drive/root:${folderPath}:/children`,
           { headers: { Authorization: `Bearer ${response.accessToken}` } }
