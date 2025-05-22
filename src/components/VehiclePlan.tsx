@@ -73,8 +73,9 @@ interface PdfViewerSharepointProps {
   currentStatus?: 'non commencé' | 'en cours' | 'terminé';
   setTab?: (tab: number) => void;
   systems: System[];
+  allowStatusChange?: boolean;
 }
-function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentStatus, setTab, systems }: PdfViewerSharepointProps) {
+function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentStatus, setTab, systems, allowStatusChange }: PdfViewerSharepointProps) {
   const { instance, accounts } = useMsal();
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [excelUrl, setExcelUrl] = useState<string | null>(null);
@@ -141,36 +142,43 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         throw new Error('Fichier de traçabilité non trouvé');
       }
 
-      // 2. Créer un lien de partage avec les permissions d'édition
-      const shareResponse = await fetch(
-        `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${file.id}/createLink`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            type: 'edit',
-            scope: 'anonymous'
-          })
+      // 2. Si nous avons déjà un lien de partage, on le réutilise
+      if (objectUrl && objectUrl.includes('WopiFrame.aspx')) {
+        // On met juste à jour le statut dans l'application
+        if (setStatus) {
+          await setStatus(newStatus);
         }
-      );
-      const shareData = await shareResponse.json();
+      } else {
+        // Sinon, on crée un nouveau lien de partage
+        const shareResponse = await fetch(
+          `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${file.id}/createLink`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              type: 'edit',
+              scope: 'anonymous'
+            })
+          }
+        );
+        const shareData = await shareResponse.json();
 
-      // 3. Mettre à jour l'URL de l'iframe avec le mode édition
-      const officeUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${file.id}&action=edit&wdInitialSession=${encodeURIComponent(JSON.stringify({
-        access_token: token,
-        share_url: shareData.link.webUrl
-      }))}`;
+        // 3. Mettre à jour l'URL de l'iframe avec le mode édition
+        const officeUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${file.id}&action=edit&wdInitialSession=${encodeURIComponent(JSON.stringify({
+          access_token: token,
+          share_url: shareData.link.webUrl
+        }))}`;
 
-      setObjectUrl(officeUrl);
+        setObjectUrl(officeUrl);
 
-      // 4. Mettre à jour le statut dans l'application
-      if (setStatus) {
-        await setStatus(newStatus);
+        // 4. Mettre à jour le statut dans l'application
+        if (setStatus) {
+          await setStatus(newStatus);
+        }
       }
-
     } catch (err) {
       console.error('Erreur lors de la mise à jour du statut:', err);
       setError('Erreur lors de la mise à jour du statut');
@@ -261,7 +269,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         <DialogTitle>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Button onClick={onBack} variant="outlined">Fermer</Button>
-            {type === 'tracabilite' && (
+            {type === 'tracabilite' && allowStatusChange && (
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Button
                   variant={currentStatus === 'en cours' ? 'contained' : 'outlined'}
@@ -496,7 +504,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{open: boolean, recordId: string|null}>({open: false, recordId: null});
-  const [showPdf, setShowPdf] = useState<{operationId: string|null, type?: 'protocole'|'tracabilite'}>({operationId: null, type: undefined});
+  const [showPdf, setShowPdf] = useState<{operationId: string|null, type?: 'protocole'|'tracabilite', allowStatusChange?: boolean}>({operationId: null, type: undefined});
   const [showViewer, setShowViewer] = useState<{url: string|null}>({url: null});
   const [filters, setFilters] = useState({
     system: '',
@@ -1182,7 +1190,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         operationCode={showPdf.operationId}
         type={showPdf.type}
         onBack={() => setShowPdf({operationId: null, type: undefined})}
-        setStatus={record ? async (status) => {
+        setStatus={record && showPdf.allowStatusChange ? async (status) => {
           if (selectedVehicle && selectedConsistency) {
             const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r =>
               r.id === record.id ? { ...r, status } : r
@@ -1193,6 +1201,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         currentStatus={record?.status || 'non commencé'}
         setTab={setTab}
         systems={systems}
+        allowStatusChange={showPdf.allowStatusChange}
       />
     );
   }
@@ -1517,7 +1526,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                     return selectedOp ? <>
                       <Button
                         variant="outlined"
-                        onClick={() => setShowPdf({operationId: selectedOperation, type: 'protocole'})}
+                        onClick={() => setShowPdf({operationId: selectedOperation, type: 'protocole', allowStatusChange: false})}
                         disabled={
                           selectedConsistency === 'IS710'
                             ? (!("protocolUrl" in selectedOp) || !selectedOp.protocolUrl) && !selectedOp.id
@@ -1529,7 +1538,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                       <Button
                         variant="outlined"
                         color="secondary"
-                        onClick={() => setShowPdf({operationId: selectedOperation, type: 'tracabilite'})}
+                        onClick={() => setShowPdf({operationId: selectedOperation, type: 'tracabilite', allowStatusChange: false})}
                         disabled={!selectedOperation}
                       >
                         Ouvrir la fiche de traçabilité
