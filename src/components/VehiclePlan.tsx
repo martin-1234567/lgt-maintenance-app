@@ -112,7 +112,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
     return response.accessToken;
   };
 
-  const handleStatusChange = async (newStatus: 'en cours' | 'terminé') => {
+  const handleStatusChange = async (newStatus: 'en cours' | 'terminé'): Promise<void> => {
     if (type !== 'tracabilite') return;
     
     setSaving(true);
@@ -125,16 +125,8 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
       // Attendre un peu pour s'assurer que les modifications sont sauvegardées
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Rafraîchir l'iframe pour s'assurer que les modifications sont bien sauvegardées
-      if (iframeRef.current) {
-        const currentSrc = iframeRef.current.src;
-        iframeRef.current.src = '';
-        setTimeout(() => {
-          if (iframeRef.current) {
-            iframeRef.current.src = currentSrc;
-          }
-        }, 100);
-      }
+      // Fermer la fiche de traçabilité
+      onBack();
     } catch (err) {
       console.error('Erreur lors de la mise à jour du statut:', err);
       setError('Erreur lors de la mise à jour du statut');
@@ -276,6 +268,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
               }}
               saving={saving}
               onSave={async (_data, _newStatus) => {}}
+              onBack={onBack}
             />
           ) : (
             <Box sx={{ color: 'red', fontWeight: 'bold', fontSize: '1.1rem', mt: 10, textAlign: 'center' }}>
@@ -1531,8 +1524,9 @@ interface EditablePDFViewerProps {
   status: 'en cours' | 'terminé';
   onStatusChange: (status: 'en cours' | 'terminé') => void;
   saving: boolean;
+  onBack: () => void;
 }
-const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, onSave, status, onStatusChange, saving }) => {
+const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, onSave, status, onStatusChange, saving, onBack }) => {
   const [pdfData, setPdfData] = React.useState<Uint8Array | null>(null);
   const [annotation, setAnnotation] = React.useState('');
   const [numPages, setNumPages] = React.useState<number | null>(null);
@@ -1564,8 +1558,10 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, onSave, stat
   };
 
   const handleSave = async (newStatus: 'en cours' | 'terminé') => {
-    onStatusChange(newStatus);
+    await onStatusChange(newStatus);
     if (onSave) await onSave(null, newStatus);
+    // Fermer la fiche après la sauvegarde
+    onBack();
   };
 
   return (
