@@ -206,60 +206,29 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         }
         if (file && file['@microsoft.graph.downloadUrl']) {
           setPdfUrl(file['@microsoft.graph.downloadUrl']);
-          const pdfBlob = await fetch(file['@microsoft.graph.downloadUrl']);
-          const blob = await pdfBlob.blob();
-          const url = URL.createObjectURL(blob);
-          setObjectUrl(url);
+          setObjectUrl(file['@microsoft.graph.downloadUrl']);
         } else {
           setError('protocole non disponible');
         }
-      } else {
-        // Recherche fiche de traçabilité par nom du système
+      } else if (type === 'tracabilite') {
+        // Recherche du PDF de traçabilité
         const system = systems.find((s: System) => s.operations.some((o: { id: string }) => o.id === operationCode));
         if (!system) {
           setError('Système non trouvé');
           return;
         }
         const formattedSystemName = formatSystemName(system.name);
-        const traceabilityFileName = `FT-LGT-${formattedSystemName}.xlsx`;
-        
+        const traceabilityFileName = `FT-LGT-${formattedSystemName}.pdf`;
+
         file = (data.value as any[]).find((f: any) =>
           f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
         );
 
-        if (!file) {
+        if (file && file['@microsoft.graph.downloadUrl']) {
+          setObjectUrl(file['@microsoft.graph.downloadUrl']);
+        } else {
           setError('fiche de traçabilité non disponible');
-          return;
         }
-
-        // Créer un lien de partage avec les permissions d'édition
-        const shareResponse = await fetch(
-          `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${file.id}/createLink`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              type: 'edit',
-              scope: 'anonymous'
-            })
-          }
-        );
-        const shareData = await shareResponse.json();
-
-        // Construire l'URL Office Online en mode édition avec les paramètres nécessaires
-        const officeUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${file.id}&action=edit&wdInitialSession=${encodeURIComponent(JSON.stringify({
-          access_token: token,
-          share_url: shareData.link.webUrl,
-          wdInitialSession: {
-            access_token: token,
-            share_url: shareData.link.webUrl
-          }
-        }))}`;
-
-        setObjectUrl(officeUrl);
       }
     } catch (e) {
       console.error('Erreur lors de la récupération du document:', e);
