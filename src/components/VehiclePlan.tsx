@@ -83,6 +83,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [excelData, setExcelData] = useState<any[][] | null>(null);
   const isMobile = useMediaQuery('(max-width:600px)');
+  const [saving, setSaving] = useState(false);
 
   // Fonction pour formater le nom du système
   const formatSystemName = (name: string): string => {
@@ -104,6 +105,87 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
       account: accounts[0],
     });
     return response.accessToken;
+  };
+
+  const handleStatusChange = async (newStatus: 'en cours' | 'terminé') => {
+    if (type !== 'tracabilite') return;
+    
+    setSaving(true);
+    try {
+      const token = await getAccessToken();
+      const SHAREPOINT_SITE_ID = 'arlingtonfleetfrance.sharepoint.com,3d42766f-7bce-4b8e-92e0-70272ae2b95e,cfa621f3-5013-433c-9d14-3c519f11bb8d';
+      const SHAREPOINT_DRIVE_ID = 'b!b3ZCPc57jkuS4HAnKuK5XvMhps8TUDxDnRQ8UZ8Ru426aMo8mBCBTrOSBU5EbQE4';
+      const SHAREPOINT_FOLDER_ID = '01UIJT6YJKMFDSJS4PPJDKVHBTW3MXZ5DO';
+
+      // 1. Récupérer le fichier Excel
+      const res = await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${SHAREPOINT_FOLDER_ID}/children`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await res.json();
+      
+      // Trouver le fichier Excel correspondant
+      const system = systems.find((s: System) => s.operations.some((o: { id: string }) => o.id === operationCode));
+      if (!system) {
+        throw new Error('Système non trouvé');
+      }
+      const formattedSystemName = formatSystemName(system.name);
+      const traceabilityFileName = `FT-LGT-${formattedSystemName}.xlsx`;
+      
+      const file = (data.value as any[]).find((f: any) =>
+        f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
+      );
+
+      if (!file) {
+        throw new Error('Fichier de traçabilité non trouvé');
+      }
+
+      // 2. Mettre à jour le statut dans le fichier Excel
+      const excelBlob = await fetch(file['@microsoft.graph.downloadUrl']);
+      const arrayBuffer = await excelBlob.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as (string | undefined)[][];
+      
+      // Trouver la colonne de statut
+      const headerRow = excelData[0] as string[];
+      const statusColIndex = headerRow.findIndex((col) => col && col.toLowerCase().includes('statut'));
+      
+      if (statusColIndex !== -1 && excelData[1]) {
+        excelData[1][statusColIndex] = newStatus;
+        
+        // Convertir les données mises à jour en fichier Excel
+        const updatedWorksheet = XLSX.utils.aoa_to_sheet(excelData);
+        const updatedWorkbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(updatedWorkbook, updatedWorksheet, firstSheetName);
+        const updatedExcelBuffer = XLSX.write(updatedWorkbook, { type: 'array', bookType: 'xlsx' });
+        
+        // 3. Sauvegarder le fichier mis à jour sur SharePoint
+        const uploadUrl = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${file.id}/content`;
+        await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          },
+          body: updatedExcelBuffer
+        });
+
+        // 4. Mettre à jour le statut dans l'application
+        if (setStatus) {
+          await setStatus(newStatus);
+        }
+
+        // 5. Recharger le fichier pour afficher les modifications
+        await fetchUrl();
+      }
+    } catch (err) {
+      console.error('Erreur lors de la mise à jour du statut:', err);
+      setError('Erreur lors de la mise à jour du statut');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const fetchUrl = async () => {
@@ -202,7 +284,29 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         </Box>
       ) : (
         <DialogTitle>
-          <Button onClick={onBack} variant="outlined">Fermer</Button>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Button onClick={onBack} variant="outlined">Fermer</Button>
+            {type === 'tracabilite' && (
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Button
+                  variant={currentStatus === 'en cours' ? 'contained' : 'outlined'}
+                  color="warning"
+                  onClick={() => handleStatusChange('en cours')}
+                  disabled={saving}
+                >
+                  {saving ? 'Sauvegarde...' : 'Sauvegarder (en cours)'}
+                </Button>
+                <Button
+                  variant={currentStatus === 'terminé' ? 'contained' : 'outlined'}
+                  color="success"
+                  onClick={() => handleStatusChange('terminé')}
+                  disabled={saving}
+                >
+                  {saving ? 'Sauvegarde...' : 'Terminer'}
+                </Button>
+              </Box>
+            )}
+          </Box>
         </DialogTitle>
       )}
       <DialogContent sx={{ p: 0, ...(isMobile && { px: 0, py: 0, m: 0 }) }}>
