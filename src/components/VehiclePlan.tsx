@@ -1529,7 +1529,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
 
 interface EditablePDFViewerProps {
   url: string;
-  onSave: (modifiedPdf: Uint8Array, newStatus: 'en cours' | 'terminé') => Promise<void>;
+  onSave: (modifiedPdf: Uint8Array | null, newStatus: 'en cours' | 'terminé') => Promise<void>;
   status: 'en cours' | 'terminé';
   onStatusChange: (status: 'en cours' | 'terminé') => void;
   saving: boolean;
