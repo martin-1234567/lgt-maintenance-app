@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -84,6 +84,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
   const [excelData, setExcelData] = useState<any[][] | null>(null);
   const isMobile = useMediaQuery('(max-width:600px)');
   const [saving, setSaving] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // Fonction pour formater le nom du système
   const formatSystemName = (name: string): string => {
@@ -140,46 +141,36 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         throw new Error('Fichier de traçabilité non trouvé');
       }
 
-      // 2. Mettre à jour le statut dans le fichier Excel
-      const excelBlob = await fetch(file['@microsoft.graph.downloadUrl']);
-      const arrayBuffer = await excelBlob.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as (string | undefined)[][];
-      
-      // Trouver la colonne de statut
-      const headerRow = excelData[0] as string[];
-      const statusColIndex = headerRow.findIndex((col) => col && col.toLowerCase().includes('statut'));
-      
-      if (statusColIndex !== -1 && excelData[1]) {
-        excelData[1][statusColIndex] = newStatus;
-        
-        // Convertir les données mises à jour en fichier Excel
-        const updatedWorksheet = XLSX.utils.aoa_to_sheet(excelData);
-        const updatedWorkbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(updatedWorkbook, updatedWorksheet, firstSheetName);
-        const updatedExcelBuffer = XLSX.write(updatedWorkbook, { type: 'array', bookType: 'xlsx' });
-        
-        // 3. Sauvegarder le fichier mis à jour sur SharePoint
-        const uploadUrl = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${file.id}/content`;
-        await fetch(uploadUrl, {
-          method: 'PUT',
+      // 2. Créer un lien de partage avec les permissions d'édition
+      const shareResponse = await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${file.id}/createLink`,
+        {
+          method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            'Content-Type': 'application/json'
           },
-          body: updatedExcelBuffer
-        });
-
-        // 4. Mettre à jour le statut dans l'application
-        if (setStatus) {
-          await setStatus(newStatus);
+          body: JSON.stringify({
+            type: 'edit',
+            scope: 'anonymous'
+          })
         }
+      );
+      const shareData = await shareResponse.json();
 
-        // 5. Recharger le fichier pour afficher les modifications
-        await fetchUrl();
+      // 3. Mettre à jour l'URL de l'iframe avec le mode édition
+      const officeUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${file.id}&action=edit&wdInitialSession=${encodeURIComponent(JSON.stringify({
+        access_token: token,
+        share_url: shareData.link.webUrl
+      }))}`;
+
+      setObjectUrl(officeUrl);
+
+      // 4. Mettre à jour le statut dans l'application
+      if (setStatus) {
+        await setStatus(newStatus);
       }
+
     } catch (err) {
       console.error('Erreur lors de la mise à jour du statut:', err);
       setError('Erreur lors de la mise à jour du statut');
@@ -230,27 +221,41 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
           return;
         }
         const formattedSystemName = formatSystemName(system.name);
-        const traceabilityFileName = `FT-LGT-${formattedSystemName}.pdf`;
-        // Ajout des logs de debug
-        console.log('Nom du système trouvé :', system.name);
-        console.log('Nom du fichier PDF cherché :', traceabilityFileName);
-        console.log('Fichiers SharePoint :', data.value.map((f: any) => f.name));
-        // Recherche du fichier (insensible à la casse et aux espaces)
+        const traceabilityFileName = `FT-LGT-${formattedSystemName}.xlsx`;
+        
         file = (data.value as any[]).find((f: any) =>
           f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
         );
+
         if (!file) {
-          console.log('Aucun fichier trouvé pour :', traceabilityFileName, 'dans', data.value.map((f: any) => f.name));
-        }
-        if (file && file['@microsoft.graph.downloadUrl']) {
-          setPdfUrl(file['@microsoft.graph.downloadUrl']);
-          const pdfBlob = await fetch(file['@microsoft.graph.downloadUrl']);
-          const blob = await pdfBlob.blob();
-          const url = URL.createObjectURL(blob);
-          setObjectUrl(url);
-        } else {
           setError('fiche de traçabilité non disponible');
+          return;
         }
+
+        // Créer un lien de partage avec les permissions d'édition
+        const shareResponse = await fetch(
+          `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${file.id}/createLink`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              type: 'edit',
+              scope: 'anonymous'
+            })
+          }
+        );
+        const shareData = await shareResponse.json();
+
+        // Construire l'URL Office Online en mode édition
+        const officeUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${file.id}&action=edit&wdInitialSession=${encodeURIComponent(JSON.stringify({
+          access_token: token,
+          share_url: shareData.link.webUrl
+        }))}`;
+
+        setObjectUrl(officeUrl);
       }
     } catch (e) {
       console.error('Erreur lors de la récupération du document:', e);
@@ -278,9 +283,6 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
       {isMobile ? (
         <Box sx={{ position: 'absolute', top: 12, left: 12, zIndex: 10 }}>
           <Button onClick={onBack} variant="outlined" sx={{ fontSize: '1.1rem', minWidth: 100 }}>Fermer</Button>
-          {objectUrl && (
-            <Button onClick={() => window.open(objectUrl, '_blank')} variant="outlined" sx={{ ml: 1, fontSize: '1.1rem' }}>Ouvrir dans une nouvelle fenêtre</Button>
-          )}
         </Box>
       ) : (
         <DialogTitle>
@@ -316,6 +318,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         {!loading && type === 'tracabilite' && (
           objectUrl ? (
             <iframe
+              ref={iframeRef}
               src={objectUrl}
               title={operationCode + '-' + type}
               width={isMobile ? '100vw' : '100%'}
