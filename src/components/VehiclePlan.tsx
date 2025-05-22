@@ -1138,7 +1138,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         type={showPdf.type}
         onBack={() => setShowPdf({operationId: null, type: undefined})}
         setStatus={record && showPdf.allowStatusChange ? async (status) => {
-          if (selectedVehicle && selectedConsistency) {
+          if (selectedVehicle && selectedConsistency && record) {
             const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r =>
               r.id === record.id ? { ...r, status } : r
             );
