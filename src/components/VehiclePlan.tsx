@@ -275,62 +275,8 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
                 if (setStatus) await setStatus(newStatus);
               }}
               saving={saving}
-              onSave={async (modifiedPdf) => {
-                // Upload du PDF modifié sur SharePoint via API Graph
-                try {
-                  setSaving(true);
-                  const token = await getAccessToken();
-                  const SHAREPOINT_SITE_ID = 'arlingtonfleetfrance.sharepoint.com,3d42766f-7bce-4b8e-92e0-70272ae2b95e,cfa621f3-5013-433c-9d14-3c519f11bb8d';
-                  const SHAREPOINT_FOLDER_ID = '01UIJT6YLQOURHAQCBSRB2FWB5PX6OZRJG';
-                  // Recherche du fichier sur SharePoint
-                  const res = await fetch(
-                    `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${SHAREPOINT_FOLDER_ID}/children`,
-                    { headers: { Authorization: `Bearer ${token}` } }
-                  );
-                  const data = await res.json();
-                  console.log('Fichiers trouvés dans ESSAI OUTILS :', data.value);
-                  data.value.forEach((f: any) => console.log('Nom du fichier trouvé :', f.name));
-                  let file;
-                  if (type === 'protocole') {
-                    file = (data.value as any[]).find((f: any) =>
-                      f.parentReference && f.parentReference.path && f.parentReference.path.includes('ESSAI OUTILS') &&
-                      f.name.startsWith(operationCode + '-') && f.name.endsWith('.pdf') && f.name.toLowerCase().includes('protocole')
-                    );
-                    if (!file) {
-                      file = (data.value as any[]).find((f: any) =>
-                        f.parentReference && f.parentReference.path && f.parentReference.path.includes('ESSAI OUTILS') &&
-                        f.name.startsWith(operationCode + '-') && f.name.endsWith('.pdf')
-                      );
-                    }
-                  } else {
-                    const system = systems.find((s: System) => s.operations.some((o: { id: string }) => o.id === operationCode));
-                    if (!system) throw new Error('Système non trouvé');
-                    const formattedSystemName = formatSystemName(system.name);
-                    const traceabilityFileName = `FT-LGT-${formattedSystemName}.pdf`;
-                    console.log('Nom attendu (traceabilityFileName) :', traceabilityFileName);
-                    file = (data.value as any[]).find((f: any) =>
-                      f.parentReference && f.parentReference.path && f.parentReference.path.includes('ESSAI OUTILS') &&
-                      f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
-                    );
-                  }
-                  if (!file) throw new Error('Fichier PDF non trouvé sur SharePoint');
-                  // Upload du PDF modifié
-                  await fetch(
-                    `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${file.id}/content`,
-                    {
-                      method: 'PUT',
-                      headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/pdf'
-                      },
-                      body: modifiedPdf
-                    }
-                  );
-                  setSaving(false);
-                } catch (e) {
-                  setSaving(false);
-                  alert('Erreur lors de la sauvegarde du PDF sur SharePoint');
-                }
+              onSave={async (modifiedPdf, newStatus) => {
+                if (setStatus) await setStatus(newStatus);
               }}
             />
           ) : (
@@ -1583,7 +1529,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
 
 interface EditablePDFViewerProps {
   url: string;
-  onSave: (modifiedPdf: Uint8Array) => Promise<void>;
+  onSave: (modifiedPdf: Uint8Array, newStatus: 'en cours' | 'terminé') => Promise<void>;
   status: 'en cours' | 'terminé';
   onStatusChange: (status: 'en cours' | 'terminé') => void;
   saving: boolean;
@@ -1620,9 +1566,8 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, onSave, stat
   };
 
   const handleSave = async (newStatus: 'en cours' | 'terminé') => {
-    if (!pdfData) return;
     onStatusChange(newStatus);
-    await onSave(pdfData);
+    await onSave(null, newStatus);
   };
 
   return (
