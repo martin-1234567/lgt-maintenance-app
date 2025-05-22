@@ -167,19 +167,12 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         }
         if (file) {
           console.log('Fichier SharePoint trouvé (protocole) :', file);
-          let sourcedoc = '';
-          if (file.webUrl) {
-            const url = new URL(file.webUrl);
-            sourcedoc = url.pathname;
-          } else if (file.parentReference && file.parentReference.path && file.name) {
-            sourcedoc = file.parentReference.path.replace('/drive/root:', '') + '/' + file.name;
+          if (file['@microsoft.graph.downloadUrl']) {
+            setObjectUrl(file['@microsoft.graph.downloadUrl']);
+            console.log('Affichage du PDF via downloadUrl :', file['@microsoft.graph.downloadUrl']);
           } else {
-            sourcedoc = file.id;
+            setError('Impossible d\'afficher le PDF');
           }
-          console.log('Chemin SharePoint utilisé pour sourcedoc :', sourcedoc);
-          const viewerUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${encodeURIComponent(sourcedoc)}&action=view`;
-          console.log('URL générée pour l\'iframe (protocole) :', viewerUrl);
-          setObjectUrl(viewerUrl);
         } else {
           setError('protocole non disponible');
         }
@@ -196,19 +189,12 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         );
         if (file) {
           console.log('Fichier SharePoint trouvé (traçabilité) :', file);
-          let sourcedoc = '';
-          if (file.webUrl) {
-            const url = new URL(file.webUrl);
-            sourcedoc = url.pathname;
-          } else if (file.parentReference && file.parentReference.path && file.name) {
-            sourcedoc = file.parentReference.path.replace('/drive/root:', '') + '/' + file.name;
+          if (file['@microsoft.graph.downloadUrl']) {
+            setObjectUrl(file['@microsoft.graph.downloadUrl']);
+            console.log('Affichage du PDF via downloadUrl :', file['@microsoft.graph.downloadUrl']);
           } else {
-            sourcedoc = file.id;
+            setError('Impossible d\'afficher le PDF');
           }
-          console.log('Chemin SharePoint utilisé pour sourcedoc :', sourcedoc);
-          const officeUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${encodeURIComponent(sourcedoc)}&action=edit`;
-          console.log('URL générée pour l\'iframe (traçabilité) :', officeUrl);
-          setObjectUrl(officeUrl);
         } else {
           setError('fiche de traçabilité non disponible');
         }
