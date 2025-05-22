@@ -630,7 +630,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         records
           .filter(record => record.status === 'en cours' || record.status === 'non commencé')
           .map(record => {
-            const system = systems.find(s => s.id === record.systemId);
+            const currentSystems = cons === 'IS710' ? systems : (localSystems[cons] || []);
+            const system = currentSystems.find(s => s.id === record.systemId);
             const operation = system?.operations.find(o => o.id === record.operationId);
             return {
               ...record,
