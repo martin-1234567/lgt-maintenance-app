@@ -43,8 +43,8 @@ import AddIcon from '@mui/icons-material/Add';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { pdfjs, Document, Page } from 'react-pdf';
-
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
+import { PDFDocument, rgb } from 'pdf-lib';
+pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.min.js`;
 
 interface VehiclePlanProps {
   vehicle: Vehicle;
@@ -262,7 +262,65 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         )}
         {!loading && (type === 'tracabilite' || type === 'protocole') && (
           objectUrl ? (
-            <PDFViewer url={objectUrl} />
+            <EditablePDFViewer
+              url={objectUrl}
+              status={currentStatus === 'terminé' ? 'terminé' : 'en cours'}
+              onStatusChange={async (newStatus) => {
+                if (setStatus) await setStatus(newStatus);
+              }}
+              saving={saving}
+              onSave={async (modifiedPdf) => {
+                // Upload du PDF modifié sur SharePoint via API Graph
+                try {
+                  setSaving(true);
+                  const token = await getAccessToken();
+                  const SHAREPOINT_SITE_ID = 'arlingtonfleetfrance.sharepoint.com,3d42766f-7bce-4b8e-92e0-70272ae2b95e,cfa621f3-5013-433c-9d14-3c519f11bb8d';
+                  const SHAREPOINT_FOLDER_ID = '01UIJT6YJKMFDSJS4PPJDKVHBTW3MXZ5DO';
+                  // Recherche du fichier sur SharePoint
+                  const res = await fetch(
+                    `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${SHAREPOINT_FOLDER_ID}/children`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                  );
+                  const data = await res.json();
+                  let file;
+                  if (type === 'protocole') {
+                    file = (data.value as any[]).find((f: any) =>
+                      f.name.startsWith(operationCode + '-') && f.name.endsWith('.pdf') && f.name.toLowerCase().includes('protocole')
+                    );
+                    if (!file) {
+                      file = (data.value as any[]).find((f: any) =>
+                        f.name.startsWith(operationCode + '-') && f.name.endsWith('.pdf')
+                      );
+                    }
+                  } else {
+                    const system = systems.find((s: System) => s.operations.some((o: { id: string }) => o.id === operationCode));
+                    if (!system) throw new Error('Système non trouvé');
+                    const formattedSystemName = formatSystemName(system.name);
+                    const traceabilityFileName = `FT-LGT-${formattedSystemName}.pdf`;
+                    file = (data.value as any[]).find((f: any) =>
+                      f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
+                    );
+                  }
+                  if (!file) throw new Error('Fichier PDF non trouvé sur SharePoint');
+                  // Upload du PDF modifié
+                  await fetch(
+                    `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${file.id}/content`,
+                    {
+                      method: 'PUT',
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/pdf'
+                      },
+                      body: modifiedPdf
+                    }
+                  );
+                  setSaving(false);
+                } catch (e) {
+                  setSaving(false);
+                  alert('Erreur lors de la sauvegarde du PDF sur SharePoint');
+                }
+              }}
+            />
           ) : (
             <Box sx={{ color: 'red', fontWeight: 'bold', fontSize: '1.1rem', mt: 10, textAlign: 'center' }}>
               {type === 'tracabilite' ? 'fiche de traçabilité non disponible' : 'protocole non disponible'}
@@ -1511,24 +1569,75 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   );
 };
 
-interface PDFViewerProps {
+interface EditablePDFViewerProps {
   url: string;
+  onSave: (modifiedPdf: Uint8Array) => Promise<void>;
+  status: 'en cours' | 'terminé';
+  onStatusChange: (status: 'en cours' | 'terminé') => void;
+  saving: boolean;
 }
-const PDFViewer: React.FC<PDFViewerProps> = ({ url }) => {
+const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, onSave, status, onStatusChange, saving }) => {
+  const [pdfData, setPdfData] = React.useState<Uint8Array | null>(null);
+  const [annotation, setAnnotation] = React.useState('');
   const [numPages, setNumPages] = React.useState<number | null>(null);
   const [pageNumber, setPageNumber] = React.useState(1);
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    fetch(url)
+      .then(res => res.arrayBuffer())
+      .then(buf => setPdfData(new Uint8Array(buf)));
+  }, [url]);
+
+  const handleAddAnnotation = async () => {
+    if (!pdfData || !annotation) return;
+    setLoading(true);
+    const pdfDoc = await PDFDocument.load(pdfData);
+    const pages = pdfDoc.getPages();
+    const firstPage = pages[0];
+    firstPage.drawText(annotation, {
+      x: 50,
+      y: firstPage.getHeight() - 50,
+      size: 18,
+      color: rgb(1, 0, 0),
+    });
+    const modifiedPdf = await pdfDoc.save();
+    setPdfData(modifiedPdf);
+    setAnnotation('');
+    setLoading(false);
+  };
+
+  const handleSave = async (newStatus: 'en cours' | 'terminé') => {
+    if (!pdfData) return;
+    onStatusChange(newStatus);
+    await onSave(pdfData);
+  };
+
   return (
     <div style={{ width: '100%', height: '80vh', overflow: 'auto', background: '#222' }}>
-      <Document
-        file={url}
-        onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-        loading={<div style={{ color: '#fff', textAlign: 'center', marginTop: 40 }}>Chargement du PDF…</div>}
-        error={<div style={{ color: 'red', textAlign: 'center', marginTop: 40 }}>Erreur de chargement du PDF</div>}
-      >
-        {Array.from(new Array(numPages), (el, index) => (
-          <Page key={`page_${index + 1}`} pageNumber={index + 1} width={900} />
-        ))}
-      </Document>
+      <div style={{ margin: 8, display: 'flex', gap: 8 }}>
+        <input
+          type="text"
+          value={annotation}
+          onChange={e => setAnnotation(e.target.value)}
+          placeholder="Ajouter une annotation (texte)"
+          disabled={loading}
+        />
+        <button onClick={handleAddAnnotation} disabled={loading || !annotation}>Annoter</button>
+        <span style={{ color: '#fff', marginLeft: 16 }}>Statut : {status}</span>
+        <button onClick={() => handleSave('en cours')} disabled={saving || loading}>Sauvegarder (en cours)</button>
+        <button onClick={() => handleSave('terminé')} disabled={saving || loading}>Terminer</button>
+      </div>
+      {pdfData && (
+        <iframe
+          src={URL.createObjectURL(new Blob([pdfData], { type: 'application/pdf' }))}
+          title="PDF modifiable"
+          width="100%"
+          height="700px"
+          style={{ border: 'none', background: '#fff' }}
+        />
+      )}
+      {!pdfData && <div style={{ color: '#fff', textAlign: 'center', marginTop: 40 }}>Chargement du PDF…</div>}
     </div>
   );
 };
