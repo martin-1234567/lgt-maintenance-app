@@ -249,10 +249,14 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         );
         const shareData = await shareResponse.json();
 
-        // Construire l'URL Office Online en mode édition
+        // Construire l'URL Office Online en mode édition avec les paramètres nécessaires
         const officeUrl = `https://arlingtonfleetfrance.sharepoint.com/_layouts/15/WopiFrame.aspx?sourcedoc=${file.id}&action=edit&wdInitialSession=${encodeURIComponent(JSON.stringify({
           access_token: token,
-          share_url: shareData.link.webUrl
+          share_url: shareData.link.webUrl,
+          wdInitialSession: {
+            access_token: token,
+            share_url: shareData.link.webUrl
+          }
         }))}`;
 
         setObjectUrl(officeUrl);
