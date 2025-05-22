@@ -275,9 +275,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
                 if (setStatus) await setStatus(newStatus);
               }}
               saving={saving}
-              onSave={async (modifiedPdf, newStatus) => {
-                if (setStatus) await setStatus(newStatus);
-              }}
+              onSave={async (_data, _newStatus) => {}}
             />
           ) : (
             <Box sx={{ color: 'red', fontWeight: 'bold', fontSize: '1.1rem', mt: 10, textAlign: 'center' }}>
@@ -1567,7 +1565,7 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, onSave, stat
 
   const handleSave = async (newStatus: 'en cours' | 'terminé') => {
     onStatusChange(newStatus);
-    await onSave(null, newStatus);
+    if (onSave) await onSave(null, newStatus);
   };
 
   return (
