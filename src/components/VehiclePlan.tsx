@@ -950,10 +950,21 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Se déclenche une seule fois au chargement initial
 
-  // Modification de la fonction refreshAllRecords pour qu'elle soit plus robuste
+  // Modification de la fonction refreshAllRecords pour qu'elle recharge aussi les consistances
   const refreshAllRecords = async () => {
     setLoading(true);
     try {
+      // Recharger les consistances depuis SharePoint
+      if (accounts && accounts.length > 0) {
+        const response = await instance.acquireTokenSilent({
+          scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
+          account: accounts[0],
+        });
+        maintenanceService.setAccessToken(response.accessToken);
+        const sharepointConsistencies = await maintenanceService.getConsistencies();
+        setConsistencies(sharepointConsistencies);
+      }
+      // Puis recharger tous les enregistrements
       for (const cons of consistencies) {
         for (const vehicle of VEHICLES) {
           await loadRecords(cons, vehicle.id);
@@ -965,6 +976,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     } finally {
       setLoading(false);
     }
+    return Promise.resolve(); // Pour PullToRefresh
   };
 
   // Affichage de la modale PDF (protocole ou traçabilité) si demandée
