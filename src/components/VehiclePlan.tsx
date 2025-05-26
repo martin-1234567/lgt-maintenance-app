@@ -1157,7 +1157,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                   ))}
                 </Box>
                 <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                  <Button onClick={() => { setShowAddSystemForm(false); setNewSysName(''); setNewSysOps([]); setNewOpName(''); }}>Annuler</Button>
+                  <Button onClick={() => { resetForm(); setTab(0); }}>Annuler</Button>
                   <Button variant="contained" onClick={handleSaveNewSystem} disabled={!newSysName.trim() || newSysOps.length === 0}>
                     Ajouter
                   </Button>
@@ -1407,7 +1407,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                       })()}
                     </Box>
                     <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                      <Button onClick={handleBack}>{t.cancel}</Button>
+                      <Button onClick={() => { resetForm(); setTab(0); }}>{t.cancel}</Button>
                       <Button variant="contained" onClick={handleAddOrEdit} disabled={!selectedSystem || !selectedOperation}>
                         {editingRecord ? t.update : t.save}
                       </Button>
