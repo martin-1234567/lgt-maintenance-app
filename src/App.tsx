@@ -23,6 +23,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Button from '@mui/material/Button';
+import { MaintenanceService } from './services/maintenanceService';
 
 const vehicles: Vehicle[] = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
@@ -250,18 +251,33 @@ function PresentationCarousel() {
   );
 }
 
-// Fonction simulant la vérification de fraîcheur des données (à adapter selon votre backend)
+// Fonction vérifiant si les données sont à jour
 async function checkIfDataIsUpToDate() {
-  // Exemple : on simule un appel API qui retourne true si les données sont à jour
-  // Remplacez ceci par un vrai appel API ou une vraie logique métier !
   try {
-    // const response = await fetch('/api/lastUpdate');
-    // const { lastUpdate } = await response.json();
-    // return lastUpdate <= localStorage.getItem('lastUpdate');
-    // Simulation : 80% de chances que ce soit à jour
-    return Math.random() < 0.8;
-  } catch (e) {
-    // En cas d'erreur réseau, on considère qu'il faut recharger
+    const maintenanceService = MaintenanceService.getInstance();
+    const sharepointConsistencies = await maintenanceService.getConsistencies();
+    const localConsistencies = JSON.parse(localStorage.getItem('consistencies') || '["IS710"]');
+    
+    // Vérifier si les consistances sont identiques
+    if (JSON.stringify(sharepointConsistencies.sort()) !== JSON.stringify(localConsistencies.sort())) {
+      return false;
+    }
+
+    // Pour chaque consistance, vérifier si les enregistrements sont à jour
+    for (const cons of sharepointConsistencies) {
+      for (const vehicle of vehicles) {
+        const sharepointRecords = await maintenanceService.getMaintenanceRecords(cons, vehicle.id);
+        const localRecords = JSON.parse(localStorage.getItem(`records-${cons}-${vehicle.id}`) || '[]');
+        
+        if (JSON.stringify(sharepointRecords) !== JSON.stringify(localRecords)) {
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Erreur lors de la vérification des données:', error);
     return false;
   }
 }
@@ -474,13 +490,15 @@ function App() {
           {isMobile ? (
             <PullToRefresh
               onRefresh={async () => {
-                const upToDate = await checkIfDataIsUpToDate();
-                if (upToDate) {
-                  return;
-                } else {
-                  setTimeout(() => window.location.reload(), 100);
-                  return;
+                try {
+                  const upToDate = await checkIfDataIsUpToDate();
+                  if (!upToDate) {
+                    window.location.reload();
+                  }
+                } catch (err) {
+                  console.error('Erreur lors du rafraîchissement:', err);
                 }
+                return Promise.resolve(); // Toujours résoudre la promesse
               }}
               icon={
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', height: 60 }}>
@@ -563,56 +581,18 @@ function App() {
             -webkit-overflow-scrolling: touch;
           }
         `} />
-        {header}
-        {/* Menus contextuels réglages/langue/visuel, toujours présents */}
-        <Menu
-          anchorEl={anchorEl}
-          open={open}
-          onClose={handleSettingsClose}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        >
-          <MenuItem onClick={handleLangMenuOpen}>
-            <ListItemIcon><LanguageIcon /></ListItemIcon>
-            <ListItemText>{t.language}</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={handleVisualMenuOpen}>{t.visual}</MenuItem>
-          {(accounts && accounts.length > 0) && (
-            <MenuItem onClick={() => { instance.logoutRedirect(); handleSettingsClose(); }}>
-              {t.logout}
-            </MenuItem>
-          )}
-        </Menu>
-        <Menu
-          anchorEl={langMenuAnchor}
-          open={langMenuOpen}
-          onClose={handleLangMenuClose}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        >
-          <MenuItem selected={lang === 'fr'} onClick={() => handleLangChange('fr')}>Français</MenuItem>
-          <MenuItem selected={lang === 'en'} onClick={() => handleLangChange('en')}>English</MenuItem>
-        </Menu>
-        <Menu
-          anchorEl={visualMenuAnchor}
-          open={visualMenuOpen}
-          onClose={handleVisualMenuClose}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        >
-          <MenuItem selected={themeMode === 'light'} onClick={() => handleThemeChange('light')}>{t.lightMode}</MenuItem>
-          <MenuItem selected={themeMode === 'dark'} onClick={() => handleThemeChange('dark')}>{t.darkMode}</MenuItem>
-        </Menu>
         {isMobile ? (
           <PullToRefresh
             onRefresh={async () => {
-              const upToDate = await checkIfDataIsUpToDate();
-              if (upToDate) {
-                return;
-              } else {
-                setTimeout(() => window.location.reload(), 100);
-                return;
+              try {
+                const upToDate = await checkIfDataIsUpToDate();
+                if (!upToDate) {
+                  window.location.reload();
+                }
+              } catch (err) {
+                console.error('Erreur lors du rafraîchissement:', err);
               }
+              return Promise.resolve(); // Toujours résoudre la promesse
             }}
             icon={
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', height: 60 }}>
@@ -622,21 +602,61 @@ function App() {
           >
             <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch', minHeight: '100vh', overflowY: 'auto', pb: 4 }}>
               <Box sx={{ my: 4, WebkitOverflowScrolling: 'touch' }}>
-                <Typography variant={isMobile ? 'h6' : 'h4'} component="h1" gutterBottom sx={{ fontWeight: 600, textAlign: isMobile ? 'center' : 'left', fontSize: isMobile ? '1.2rem' : undefined }}>
-                  {t.subtitle}
+                <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
+                  {t.pleaseLogin}
                 </Typography>
-                <VehiclePlan systems={systemsWithOperations} />
+                <button
+                  style={{
+                    padding: isMobile ? '12px 0' : '10px 20px',
+                    fontSize: isMobile ? '1rem' : '1.1rem',
+                    cursor: 'pointer',
+                    borderRadius: 6,
+                    border: 'none',
+                    background: '#fff',
+                    color: '#3A7DB8',
+                    fontWeight: 'bold',
+                    boxShadow: '0 1px 4px #0002',
+                    marginTop: 16,
+                    width: isMobile ? '100%' : undefined,
+                    maxWidth: 340,
+                    display: 'block',
+                  }}
+                  onClick={() => instance.loginRedirect(loginRequest)}
+                >
+                  {t.login}
+                </button>
               </Box>
+              <PresentationCarousel />
             </Container>
           </PullToRefresh>
         ) : (
           <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch', minHeight: '100vh', overflowY: 'auto', pb: 4 }}>
             <Box sx={{ my: 4, WebkitOverflowScrolling: 'touch' }}>
-              <Typography variant={isMobile ? 'h6' : 'h4'} component="h1" gutterBottom sx={{ fontWeight: 600, textAlign: isMobile ? 'center' : 'left', fontSize: isMobile ? '1.2rem' : undefined }}>
-                {t.subtitle}
+              <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
+                {t.pleaseLogin}
               </Typography>
-              <VehiclePlan systems={systemsWithOperations} />
+              <button
+                style={{
+                  padding: isMobile ? '12px 0' : '10px 20px',
+                  fontSize: isMobile ? '1rem' : '1.1rem',
+                  cursor: 'pointer',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: '#fff',
+                  color: '#3A7DB8',
+                  fontWeight: 'bold',
+                  boxShadow: '0 1px 4px #0002',
+                  marginTop: 16,
+                  width: isMobile ? '100%' : undefined,
+                  maxWidth: 340,
+                  display: 'block',
+                }}
+                onClick={() => instance.loginRedirect(loginRequest)}
+              >
+                {t.login}
+              </button>
             </Box>
+            <PresentationCarousel />
           </Container>
         )}
       </ThemeProvider>
@@ -644,12 +664,4 @@ function App() {
   );
 }
 
-function AppWrapper() {
-  return (
-    <MsalProvider instance={msalInstance}>
-      <App />
-    </MsalProvider>
-  );
-}
-
-export default AppWrapper;
+export default App;
