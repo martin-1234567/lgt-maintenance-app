@@ -1226,7 +1226,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                             <Typography variant="body2" sx={{ mb: 0.5 }}><b>{t.operation} :</b> {operation?.name || record.operationId}</Typography>
                             <Typography variant="body2" sx={{ mb: 0.5 }}><b>{t.date} :</b> {new Date(record.timestamp).toLocaleString()}</Typography>
                             <Typography variant="body2" sx={{ mb: 0.5 }}><b>{t.comment} :</b> {record.comment}</Typography>
-                            <Typography variant="body2" sx={{ mb: 0.5 }}><b>Statut :</b> <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', background: color, border: '1px solid #bbb', verticalAlign: 'middle', marginRight: 4 }} />{(() => { console.log('Affichage statut', record.status, 'pour', record); return record.status || 'non commencé'; })()}</Typography>
+                            <Typography variant="body2" sx={{ mb: 0.5 }}><b>Statut :</b> <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', background: color, border: '1px solid #bbb', verticalAlign: 'middle', marginRight: 4 }} />{record.status || 'non commencé'}</Typography>
                             <Typography variant="body2"><b>{t.user} :</b> {record.user || 'Inconnu'}</Typography>
                           </Paper>
                         );
@@ -1324,7 +1324,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                                       verticalAlign: 'middle',
                                       marginRight: 6
                                     }} />
-                                    <span style={{ fontSize: 13, color: '#444' }}>{(() => { console.log('Affichage statut', record.status, 'pour', record); return record.status || 'non commencé'; })()}</span>
+                                    <span style={{ fontSize: 13, color: '#444' }}>{record.status || 'non commencé'}</span>
                                   </TableCell>
                                   <TableCell>{record.user || 'Inconnu'}</TableCell>
                                   <TableCell align="right">
