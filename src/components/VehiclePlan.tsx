@@ -1139,7 +1139,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
               r.id === record.id ? { ...r, status } : r
             );
             await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
-            // Fermer la fiche APRÈS la mise à jour
             setShowPdf({operationId: null, type: undefined});
           }
         } : undefined}
