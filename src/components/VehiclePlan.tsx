@@ -1134,12 +1134,19 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         type={showPdf.type}
         onBack={() => setShowPdf({operationId: null, type: undefined})}
         setStatus={record && showPdf.allowStatusChange ? async (status) => {
+          console.log('setStatus appelé avec', status, 'pour record', record);
           if (selectedVehicle && selectedConsistency && record) {
             const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r =>
               r.id === record.id ? { ...r, status } : r
             );
+            setRecordsByConsistency(prev => ({
+              ...prev,
+              [selectedConsistency]: {
+                ...prev[selectedConsistency],
+                [selectedVehicle.id]: updatedRecords
+              }
+            }));
             await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
-            await loadRecords(selectedConsistency, selectedVehicle.id);
             setShowPdf({operationId: null, type: undefined});
           }
         } : undefined}
