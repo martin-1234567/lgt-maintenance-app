@@ -77,8 +77,9 @@ interface PdfViewerSharepointProps {
   setTab?: (tab: number) => void;
   systems: System[];
   allowStatusChange?: boolean;
+  recordId?: string;
 }
-function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentStatus, setTab, systems, allowStatusChange }: PdfViewerSharepointProps) {
+function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentStatus, setTab, systems, allowStatusChange, recordId }: PdfViewerSharepointProps) {
   const { instance, accounts } = useMsal();
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [excelUrl, setExcelUrl] = useState<string | null>(null);
@@ -450,7 +451,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{open: boolean, recordId: string|null}>({open: false, recordId: null});
-  const [showPdf, setShowPdf] = useState<{operationId: string|null, type?: 'protocole'|'tracabilite', allowStatusChange?: boolean}>({operationId: null, type: undefined});
+  const [showPdf, setShowPdf] = useState<{operationId: string|null, type?: 'protocole'|'tracabilite', allowStatusChange?: boolean, recordId?: string}>({operationId: null, type: undefined});
   const [showViewer, setShowViewer] = useState<{url: string|null}>({url: null});
   const [filters, setFilters] = useState({
     system: '',
@@ -932,7 +933,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
 
   // Affichage de la modale PDF (protocole ou traçabilité) si demandée
   if (showPdf.operationId && showPdf.type) {
-    const record = recordsByConsistency[selectedConsistency]?.[selectedVehicle?.id || 0]?.find(r => r.operationId === showPdf.operationId);
+    const record = recordsByConsistency[selectedConsistency]?.[selectedVehicle?.id || 0]?.find(r => r.id === showPdf.recordId);
     return (
       <PdfViewerSharepoint
         operationCode={showPdf.operationId}
@@ -968,6 +969,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         setTab={setTab}
         systems={systems}
         allowStatusChange={showPdf.allowStatusChange}
+        recordId={showPdf.recordId}
       />
     );
   }
@@ -1411,7 +1413,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                           <Button
                             variant="outlined"
                             color="secondary"
-                            onClick={() => setShowPdf({operationId: selectedOperation, type: 'tracabilite', allowStatusChange: true})}
+                            onClick={() => setShowPdf({operationId: record.operationId, type: 'tracabilite', allowStatusChange: true, recordId: record.id})}
                             disabled={!selectedOperation}
                           >
                             Ouvrir la fiche de traçabilité
