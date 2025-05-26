@@ -927,6 +927,38 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     }
   };
 
+  // Affichage de la modale PDF (protocole ou traçabilité) si demandée
+  if (showPdf.operationId && showPdf.type) {
+    const record = recordsByConsistency[selectedConsistency]?.[selectedVehicle?.id || 0]?.find(r => r.operationId === showPdf.operationId);
+    return (
+      <PdfViewerSharepoint
+        operationCode={showPdf.operationId}
+        type={showPdf.type}
+        onBack={() => setShowPdf({operationId: null, type: undefined})}
+        setStatus={record && showPdf.allowStatusChange ? async (status) => {
+          if (selectedVehicle && selectedConsistency && record) {
+            const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r =>
+              r.id === record.id ? { ...r, status } : r
+            );
+            setRecordsByConsistency(prev => ({
+              ...prev,
+              [selectedConsistency]: {
+                ...prev[selectedConsistency],
+                [selectedVehicle.id]: updatedRecords
+              }
+            }));
+            await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
+            setShowPdf({operationId: null, type: undefined});
+          }
+        } : undefined}
+        currentStatus={record?.status || 'non commencé'}
+        setTab={setTab}
+        systems={systems}
+        allowStatusChange={showPdf.allowStatusChange}
+      />
+    );
+  }
+
   // Affichage principal avec bouton retour global
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
@@ -1132,16 +1164,19 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             </Box>
           </Box>
         )}
-        <Tabs
-          value={tab}
-          onChange={(_, v) => setTab(v)}
-          variant={isMobile ? 'scrollable' : 'standard'}
-          scrollButtons={isMobile ? 'auto' : false}
-          sx={{ minHeight: isMobile ? 36 : 48, mb: isMobile ? 1 : 2 }}
-        >
-          <Tab label={t.history} />
-          <Tab label={editingRecord ? t.edit : t.addRecord} />
-        </Tabs>
+        {/* Onglets HISTORIQUE et AJOUTER UN ENREGISTREMENT : affichés seulement si consistance ET véhicule sélectionnés */}
+        {selectedConsistency && selectedVehicle && (
+          <Tabs
+            value={tab}
+            onChange={(_, v) => setTab(v)}
+            variant={isMobile ? 'scrollable' : 'standard'}
+            scrollButtons={isMobile ? 'auto' : false}
+            sx={{ minHeight: isMobile ? 36 : 48, mb: isMobile ? 1 : 2 }}
+          >
+            <Tab label={t.history} />
+            <Tab label={editingRecord ? t.edit : t.addRecord} />
+          </Tabs>
+        )}
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
             <CircularProgress />
