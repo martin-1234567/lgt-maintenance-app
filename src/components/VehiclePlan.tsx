@@ -1413,8 +1413,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                           <Button
                             variant="outlined"
                             color="secondary"
-                            onClick={() => setShowPdf({operationId: record.operationId, type: 'tracabilite', allowStatusChange: true, recordId: record.id})}
-                            disabled={!selectedOperation}
+                            onClick={() => editingRecord && setShowPdf({operationId: editingRecord.operationId, type: 'tracabilite', allowStatusChange: true, recordId: editingRecord.id})}
+                            disabled={!editingRecord}
                           >
                             Ouvrir la fiche de traçabilité
                           </Button>
