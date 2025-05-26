@@ -490,6 +490,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   const [lang, setLang] = useState<'fr' | 'en'>('fr');
   const t = translations[lang];
   const isMobile = useMediaQuery('(max-width:600px)');
+  const [pendingStatus, setPendingStatus] = useState<'en cours' | 'terminé' | null>(null);
 
   const maintenanceService = MaintenanceService.getInstance();
   const userName = accounts && accounts[0] ? (accounts[0].name || accounts[0].username) : 'Inconnu';
@@ -615,14 +616,14 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     }
   };
 
-  // Mise à jour de handleAddOrEdit pour utiliser updateRecords
+  // Mise à jour de handleAddOrEdit pour utiliser pendingStatus si présent
   const handleAddOrEdit = async () => {
     if (selectedSystem && selectedOperation && selectedVehicle && selectedConsistency) {
       let updatedRecords: MaintenanceRecord[];
       if (editingRecord) {
         updatedRecords = currentRecords.map(record =>
           record.id === editingRecord.id 
-            ? { ...record, systemId: selectedSystem, operationId: selectedOperation, comment, user: userName }
+            ? { ...record, systemId: selectedSystem, operationId: selectedOperation, comment, user: userName, status: pendingStatus || record.status }
             : record
         );
       } else {
@@ -635,13 +636,14 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           timestamp: new Date(),
           comment,
           user: userName,
-          status: 'non commencé'
+          status: pendingStatus || 'non commencé'
         };
         updatedRecords = [...currentRecords, newRecord];
       }
       await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
       resetForm();
       setTab(0);
+      setPendingStatus(null); // Réinitialise le statut temporaire
     }
   };
 
@@ -925,6 +927,13 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     }
   };
 
+  // Fonction pour annuler l'édition et réinitialiser le statut temporaire
+  const handleCancel = () => {
+    resetForm();
+    setTab(0);
+    setPendingStatus(null);
+  };
+
   // 1. Choix de la consistance
   if (!selectedConsistency) {
     return (
@@ -1134,19 +1143,9 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         type={showPdf.type}
         onBack={() => setShowPdf({operationId: null, type: undefined})}
         setStatus={record && showPdf.allowStatusChange ? async (status) => {
-          console.log('setStatus appelé avec', status, 'pour record', record);
           if (selectedVehicle && selectedConsistency && record) {
-            const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r =>
-              r.id === record.id ? { ...r, status } : r
-            );
-            setRecordsByConsistency(prev => ({
-              ...prev,
-              [selectedConsistency]: {
-                ...prev[selectedConsistency],
-                [selectedVehicle.id]: updatedRecords
-              }
-            }));
-            await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
+            setPendingStatus(status); // On stocke le statut choisi
+            setEditingRecord(record); // On ouvre le formulaire d'édition
             setShowPdf({operationId: null, type: undefined});
           }
         } : undefined}
@@ -1499,7 +1498,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                   })()}
                 </Box>
                 <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                  <Button onClick={() => { resetForm(); setTab(0); }}>{t.cancel}</Button>
+                  <Button onClick={handleCancel}>{t.cancel}</Button>
                   <Button variant="contained" onClick={handleAddOrEdit} disabled={!selectedSystem || !selectedOperation}>
                     {editingRecord ? t.update : t.save}
                   </Button>
