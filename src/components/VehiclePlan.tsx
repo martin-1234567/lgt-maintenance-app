@@ -849,10 +849,40 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     ));
   };
 
-  // Fonction pour supprimer une consistance
-  const handleDeleteConsistency = (cons: string) => {
+  // Chargement des consistances depuis SharePoint au démarrage
+  useEffect(() => {
+    const fetchConsistencies = async () => {
+      if (!accounts || accounts.length === 0) return;
+      const response = await instance.acquireTokenSilent({
+        scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
+        account: accounts[0],
+      });
+      maintenanceService.setAccessToken(response.accessToken);
+      const sharepointConsistencies = await maintenanceService.getConsistencies();
+      setConsistencies(sharepointConsistencies);
+    };
+    fetchConsistencies();
+    // eslint-disable-next-line
+  }, []);
+
+  // Ajout d'une consistance : sauvegarde sur SharePoint
+  const handleAddConsistency = async (newCons: string) => {
+    const newList = [...consistencies, newCons];
+    setConsistencies(newList);
+    if (!accounts || accounts.length === 0) return;
+    const response = await instance.acquireTokenSilent({
+      scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
+      account: accounts[0],
+    });
+    maintenanceService.setAccessToken(response.accessToken);
+    await maintenanceService.saveConsistencies(newList);
+  };
+
+  // Suppression d'une consistance : sauvegarde sur SharePoint
+  const handleDeleteConsistency = async (cons: string) => {
     if (window.confirm(`Voulez-vous vraiment supprimer la consistance "${cons}" ?`)) {
-      setConsistencies(prev => prev.filter(c => c !== cons));
+      const newList = consistencies.filter(c => c !== cons);
+      setConsistencies(newList);
       setLocalSystems(prev => {
         const newObj = { ...prev };
         delete newObj[cons];
@@ -863,11 +893,17 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         delete newObj[cons];
         return newObj;
       });
-      // Si la consistance supprimée était sélectionnée, on la désélectionne
       if (selectedConsistency === cons) {
         setSelectedConsistency('');
         setSelectedVehicle(null);
       }
+      if (!accounts || accounts.length === 0) return;
+      const response = await instance.acquireTokenSilent({
+        scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
+        account: accounts[0],
+      });
+      maintenanceService.setAccessToken(response.accessToken);
+      await maintenanceService.saveConsistencies(newList);
     }
   };
 
@@ -1067,20 +1103,9 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
               <DialogActions>
                 <Button onClick={() => setAddConsDialogOpen(false)}>Annuler</Button>
                 <Button
-                  onClick={() => {
-                    setConsistencies([...consistencies, newConsName.trim()]);
-                    setSelectedConsistency(newConsName.trim());
-                    setSelectedVehicle(null);
-                    setRecordsByConsistency(prev => {
-                      const newObj = { ...prev };
-                      const vehObj: { [vehicleId: number]: MaintenanceRecord[] } = {};
-                      VEHICLES.forEach(v => { vehObj[v.id] = []; });
-                      newObj[newConsName.trim()] = vehObj;
-                      return newObj;
-                    });
-                    setLocalSystems((prev) => ({ ...prev, [newConsName.trim()]: [] }));
+                  onClick={async () => {
+                    await handleAddConsistency(newConsName.trim());
                     setAddConsDialogOpen(false);
-                    setNewConsName('');
                     setShowCustomSysForm(true);
                   }}
                   disabled={!newConsName.trim() || consistencies.includes(newConsName.trim())}

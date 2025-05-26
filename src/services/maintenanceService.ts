@@ -103,4 +103,51 @@ export class MaintenanceService {
       throw new Error(message);
     }
   }
+
+  // Ajout gestion centralisée des consistances
+  public async getConsistencies(): Promise<string[]> {
+    try {
+      const headers = await this.getHeaders();
+      const response = await axios.get<SharePointResponse>(
+        `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${MAINTENANCE_FOLDER_ID}/children`,
+        { headers }
+      );
+      const file = response.data.value.find((file: SharePointFile) => file.name === 'consistencies.json');
+      if (!file) return ['IS710']; // Valeur par défaut si le fichier n'existe pas
+      const fileContent = await axios.get<string[]>(file['@microsoft.graph.downloadUrl'], { headers });
+      return fileContent.data;
+    } catch (error) {
+      console.error('Erreur lors de la récupération des consistances:', error);
+      return ['IS710'];
+    }
+  }
+
+  public async saveConsistencies(consistencies: string[]): Promise<void> {
+    try {
+      const headers = await this.getHeaders();
+      const fileName = 'consistencies.json';
+      // Vérifier si le fichier existe déjà
+      const response = await axios.get<SharePointResponse>(
+        `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${MAINTENANCE_FOLDER_ID}/children`,
+        { headers }
+      );
+      const existingFile = response.data.value.find((file: SharePointFile) => file.name === fileName);
+      if (existingFile) {
+        await axios.put(
+          `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${existingFile.id}/content`,
+          JSON.stringify(consistencies),
+          { headers: { ...headers, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        await axios.put(
+          `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${MAINTENANCE_FOLDER_ID}:/${fileName}:/content`,
+          JSON.stringify(consistencies),
+          { headers: { ...headers, 'Content-Type': 'application/json' } }
+        );
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde des consistances:', error);
+      throw new Error('Erreur lors de la sauvegarde des consistances');
+    }
+  }
 } 
