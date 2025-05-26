@@ -1504,8 +1504,6 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, onSave, stat
         />
         <button onClick={handleAddAnnotation} disabled={loading || !annotation}>Annoter</button>
         <span style={{ color: '#fff', marginLeft: 16 }}>Statut : {status}</span>
-        <button onClick={() => handleSave('en cours')} disabled={saving || loading}>Sauvegarder (en cours)</button>
-        <button onClick={() => handleSave('terminé')} disabled={saving || loading}>Terminer</button>
       </div>
       {pdfData && (
         <iframe
