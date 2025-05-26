@@ -937,6 +937,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         onBack={() => setShowPdf({operationId: null, type: undefined})}
         setStatus={record && showPdf.allowStatusChange ? async (status) => {
           if (selectedVehicle && selectedConsistency && record) {
+            // Mise à jour du statut dans le state local
             const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r =>
               r.id === record.id ? { ...r, status } : r
             );
@@ -947,7 +948,9 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                 [selectedVehicle.id]: updatedRecords
               }
             }));
+            // Sauvegarde dans SharePoint
             await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
+            // Fermeture de la modale après la sauvegarde
             setShowPdf({operationId: null, type: undefined});
           }
         } : undefined}
