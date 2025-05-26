@@ -1503,7 +1503,6 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, onSave, stat
           disabled={loading}
         />
         <button onClick={handleAddAnnotation} disabled={loading || !annotation}>Annoter</button>
-        <span style={{ color: '#fff', marginLeft: 16 }}>Statut : {status}</span>
       </div>
       {pdfData && (
         <iframe
