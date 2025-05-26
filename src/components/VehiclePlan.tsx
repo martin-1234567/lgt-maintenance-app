@@ -936,33 +936,168 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             ← Retour
           </Button>
         </Box>
-        <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 2, mb: 2, ml: isMobile ? 0 : 8 }}>
-          <Typography variant="h6" sx={{ fontSize: isMobile ? '1rem' : undefined }}>Consistance : {selectedConsistency}</Typography>
-          <FormControl sx={{ minWidth: 220 }} fullWidth={isMobile}>
-            <InputLabel id="vehicle-select-label-main">Véhicule</InputLabel>
-            <Select
-              labelId="vehicle-select-label-main"
-              value={selectedVehicle ? String((selectedVehicle as Vehicle).id) : ''}
-              label="Véhicule"
-              onChange={(e: SelectChangeEvent<string>) => {
-                const veh = VEHICLES.find((v) => v.id === Number(e.target.value));
-                if (veh) setSelectedVehicle(veh);
-              }}
-            >
-              {VEHICLES.map((veh) => (
-                <MenuItem key={veh.id} value={String(veh.id)}>{veh.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          {selectedConsistency !== 'IS710' && (
-            <IconButton color="error" onClick={() => handleDeleteConsistency(selectedConsistency)} sx={{ alignSelf: isMobile ? 'flex-end' : 'center' }}>
-              <DeleteIcon />
-            </IconButton>
-          )}
-          <Button variant="outlined" sx={{ mt: isMobile ? 1 : 0 }} fullWidth={isMobile} onClick={() => setShowAddSystemForm(v => !v)}>
-            Ajouter un système
-          </Button>
-        </Box>
+        {/* PAGE D'ACCUEIL : choix consistance + tableau opérations en attente */}
+        { !selectedConsistency && (
+          <>
+            <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
+              <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Choisissez une consistance</Typography>
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 4, alignItems: 'center' }}>
+                {consistencies.map((cons) => (
+                  <Button
+                    key={cons}
+                    variant="contained"
+                    color="primary"
+                    size="large"
+                    sx={{ py: 2, px: 6, fontSize: 22 }}
+                    onClick={() => handleSelectConsistency(cons)}
+                  >
+                    {cons}
+                  </Button>
+                ))}
+                <IconButton color="primary" sx={{ ml: 1 }} onClick={() => setAddConsDialogOpen(true)}>
+                  <AddIcon />
+                </IconButton>
+              </Box>
+            </Box>
+            {/* Tableau des opérations en attente */}
+            <Box sx={{ maxWidth: 800, mx: 'auto', mt: 8, px: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                <Typography variant="h5" sx={{ mb: 0, textAlign: 'center' }}>Opérations en attente</Typography>
+                <IconButton size="small" sx={{ ml: 1, color: '#888', p: 0.5 }} onClick={refreshAllRecords} title="Rafraîchir">
+                  <RefreshIcon fontSize="small" />
+                </IconButton>
+              </Box>
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableBody>
+                    {pendingRecords.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} align="center" style={{ color: '#888' }}>
+                          Aucune opération en attente
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      pendingRecords.map((record: PendingRecord) => (
+                        <TableRow key={record.id}>
+                          <TableCell>{record.consistency}</TableCell>
+                          <TableCell>Véhicule {record.vehicleId}</TableCell>
+                          <TableCell>{record.systemName}</TableCell>
+                          <TableCell>{record.operationName}</TableCell>
+                          <TableCell>
+                            <span style={{
+                              display: 'inline-block',
+                              width: 14,
+                              height: 14,
+                              borderRadius: '50%',
+                              background: record.status === 'en cours' ? '#ff9800' : '#f44336',
+                              border: '1px solid #bbb',
+                              verticalAlign: 'middle',
+                              marginRight: 4
+                            }} />
+                            {(() => { console.log('Affichage statut', record.status, 'pour', record); return record.status || 'non commencé'; })()}
+                          </TableCell>
+                          <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
+                          <TableCell>{record.user || 'Inconnu'}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+            <Dialog open={addConsDialogOpen} onClose={() => setAddConsDialogOpen(false)}>
+              <DialogTitle>Ajouter une consistance</DialogTitle>
+              <DialogContent>
+                <TextField
+                  autoFocus
+                  margin="dense"
+                  label="Nom de la consistance"
+                  fullWidth
+                  value={newConsName}
+                  onChange={e => setNewConsName(e.target.value)}
+                />
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setAddConsDialogOpen(false)}>Annuler</Button>
+                <Button
+                  onClick={() => {
+                    setConsistencies([...consistencies, newConsName.trim()]);
+                    setSelectedConsistency(newConsName.trim());
+                    setSelectedVehicle(null);
+                    setRecordsByConsistency(prev => {
+                      const newObj = { ...prev };
+                      const vehObj: { [vehicleId: number]: MaintenanceRecord[] } = {};
+                      VEHICLES.forEach(v => { vehObj[v.id] = []; });
+                      newObj[newConsName.trim()] = vehObj;
+                      return newObj;
+                    });
+                    setLocalSystems((prev) => ({ ...prev, [newConsName.trim()]: [] }));
+                    setAddConsDialogOpen(false);
+                    setNewConsName('');
+                    setShowCustomSysForm(true);
+                  }}
+                  disabled={!newConsName.trim() || consistencies.includes(newConsName.trim())}
+                  variant="contained"
+                >
+                  Ajouter
+                </Button>
+              </DialogActions>
+            </Dialog>
+          </>
+        )}
+        {/* Ensuite, si consistance sélectionnée mais pas de véhicule, choix du véhicule */}
+        { selectedConsistency && !selectedVehicle && (
+          <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
+            <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Consistance : {selectedConsistency}</Typography>
+            <Typography variant="h6" sx={{ mb: 3, textAlign: 'center' }}>Choisissez un véhicule</Typography>
+            <FormControl fullWidth>
+              <InputLabel id="vehicle-select-label">Véhicule</InputLabel>
+              <Select
+                labelId="vehicle-select-label"
+                value={selectedVehicle ? String((selectedVehicle as Vehicle).id) : ''}
+                label="Véhicule"
+                onChange={(e: SelectChangeEvent<string>) => {
+                  const veh = VEHICLES.find((v) => v.id === Number(e.target.value));
+                  if (veh) setSelectedVehicle(veh);
+                }}
+              >
+                {VEHICLES.map((veh) => (
+                  <MenuItem key={veh.id} value={String(veh.id)}>{veh.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        )}
+        {/* Sinon, vue détaillée véhicule/consistance comme actuellement */}
+        { selectedConsistency && selectedVehicle && (
+          <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 2, mb: 2, ml: isMobile ? 0 : 8 }}>
+            <Typography variant="h6" sx={{ fontSize: isMobile ? '1rem' : undefined }}>Consistance : {selectedConsistency}</Typography>
+            <FormControl sx={{ minWidth: 220 }} fullWidth={isMobile}>
+              <InputLabel id="vehicle-select-label-main">Véhicule</InputLabel>
+              <Select
+                labelId="vehicle-select-label-main"
+                value={selectedVehicle ? String((selectedVehicle as Vehicle).id) : ''}
+                label="Véhicule"
+                onChange={(e: SelectChangeEvent<string>) => {
+                  const veh = VEHICLES.find((v) => v.id === Number(e.target.value));
+                  if (veh) setSelectedVehicle(veh);
+                }}
+              >
+                {VEHICLES.map((veh) => (
+                  <MenuItem key={veh.id} value={String(veh.id)}>{veh.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            {selectedConsistency !== 'IS710' && (
+              <IconButton color="error" onClick={() => handleDeleteConsistency(selectedConsistency)} sx={{ alignSelf: isMobile ? 'flex-end' : 'center' }}>
+                <DeleteIcon />
+              </IconButton>
+            )}
+            <Button variant="outlined" sx={{ mt: isMobile ? 1 : 0 }} fullWidth={isMobile} onClick={() => setShowAddSystemForm(v => !v)}>
+              Ajouter un système
+            </Button>
+          </Box>
+        )}
         {showAddSystemForm && (
           <Box sx={{ maxWidth: 400, mx: 'auto', mb: 3, p: 2, border: '1px solid #ccc', borderRadius: 2 }}>
             <Typography variant="subtitle1" sx={{ mb: 1 }}>Ajouter un système</Typography>
