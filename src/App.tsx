@@ -570,97 +570,43 @@ function App() {
     );
   }
 
+  // Si connecté, afficher l'application principale
   return (
-    <>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Global styles={`
-          html, body, #root {
-            height: 100%;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-          }
-        `} />
-        {isMobile ? (
-          <PullToRefresh
-            onRefresh={async () => {
-              try {
-                const upToDate = await checkIfDataIsUpToDate();
-                if (!upToDate) {
-                  window.location.reload();
-                }
-              } catch (err) {
-                console.error('Erreur lors du rafraîchissement:', err);
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Global styles={`
+        html, body, #root {
+          height: 100%;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+      `} />
+      {header}
+      {isMobile ? (
+        <PullToRefresh
+          onRefresh={async () => {
+            try {
+              const upToDate = await checkIfDataIsUpToDate();
+              if (!upToDate) {
+                window.location.reload();
               }
-              return Promise.resolve(); // Toujours résoudre la promesse
-            }}
-            icon={
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', height: 60 }}>
-                <CircularProgress size={28} color="primary" />
-              </div>
+            } catch (err) {
+              console.error('Erreur lors du rafraîchissement:', err);
             }
-          >
-            <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch', minHeight: '100vh', overflowY: 'auto', pb: 4 }}>
-              <Box sx={{ my: 4, WebkitOverflowScrolling: 'touch' }}>
-                <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
-                  {t.pleaseLogin}
-                </Typography>
-                <button
-                  style={{
-                    padding: isMobile ? '12px 0' : '10px 20px',
-                    fontSize: isMobile ? '1rem' : '1.1rem',
-                    cursor: 'pointer',
-                    borderRadius: 6,
-                    border: 'none',
-                    background: '#fff',
-                    color: '#3A7DB8',
-                    fontWeight: 'bold',
-                    boxShadow: '0 1px 4px #0002',
-                    marginTop: 16,
-                    width: isMobile ? '100%' : undefined,
-                    maxWidth: 340,
-                    display: 'block',
-                  }}
-                  onClick={() => instance.loginRedirect(loginRequest)}
-                >
-                  {t.login}
-                </button>
-              </Box>
-              <PresentationCarousel />
-            </Container>
-          </PullToRefresh>
-        ) : (
-          <Container maxWidth="md" sx={{ mt: isMobile ? 7 : 14, px: { xs: 0.5, sm: 2 }, mb: isMobile ? 2 : 4, WebkitOverflowScrolling: 'touch', minHeight: '100vh', overflowY: 'auto', pb: 4 }}>
-            <Box sx={{ my: 4, WebkitOverflowScrolling: 'touch' }}>
-              <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
-                {t.pleaseLogin}
-              </Typography>
-              <button
-                style={{
-                  padding: isMobile ? '12px 0' : '10px 20px',
-                  fontSize: isMobile ? '1rem' : '1.1rem',
-                  cursor: 'pointer',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: '#fff',
-                  color: '#3A7DB8',
-                  fontWeight: 'bold',
-                  boxShadow: '0 1px 4px #0002',
-                  marginTop: 16,
-                  width: isMobile ? '100%' : undefined,
-                  maxWidth: 340,
-                  display: 'block',
-                }}
-                onClick={() => instance.loginRedirect(loginRequest)}
-              >
-                {t.login}
-              </button>
-            </Box>
-            <PresentationCarousel />
-          </Container>
-        )}
-      </ThemeProvider>
-    </>
+            return Promise.resolve(); // Toujours résoudre la promesse
+          }}
+          icon={
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', height: 60 }}>
+              <CircularProgress size={28} color="primary" />
+            </div>
+          }
+        >
+          <VehiclePlan systems={systemsWithOperations} />
+        </PullToRefresh>
+      ) : (
+        <VehiclePlan systems={systemsWithOperations} />
+      )}
+    </ThemeProvider>
   );
 }
 
