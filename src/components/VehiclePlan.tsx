@@ -490,7 +490,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   const [lang, setLang] = useState<'fr' | 'en'>('fr');
   const t = translations[lang];
   const isMobile = useMediaQuery('(max-width:600px)');
-  const [pendingStatus, setPendingStatus] = useState<'en cours' | 'terminé' | null>(null);
 
   const maintenanceService = MaintenanceService.getInstance();
   const userName = accounts && accounts[0] ? (accounts[0].name || accounts[0].username) : 'Inconnu';
@@ -623,10 +622,9 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       if (editingRecord) {
         updatedRecords = currentRecords.map(record =>
           record.id === editingRecord.id 
-            ? { ...record, systemId: selectedSystem, operationId: selectedOperation, comment, user: userName, status: pendingStatus || record.status }
+            ? { ...record, systemId: selectedSystem, operationId: selectedOperation, comment, user: userName, status: record.status }
             : record
         );
-        console.log('Mise à jour du statut', pendingStatus, 'pour', editingRecord);
       } else {
         const newRecord: MaintenanceRecord = {
           id: Date.now().toString(),
@@ -637,14 +635,13 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           timestamp: new Date(),
           comment,
           user: userName,
-          status: pendingStatus || 'non commencé'
+          status: 'non commencé'
         };
         updatedRecords = [...currentRecords, newRecord];
       }
       await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
       resetForm();
       setTab(0);
-      setPendingStatus(null); // Réinitialise le statut temporaire
     }
   };
 
@@ -715,63 +712,65 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     }));
   };
 
-  const SearchPopover = ({ column, title }: { column: string, title: string }) => (
-    <Popover
-      open={Boolean(anchorEl[column])}
-      anchorEl={anchorEl[column]}
-      onClose={() => handleSearchClose(column)}
-      anchorOrigin={{
-        vertical: 'bottom',
-        horizontal: 'left',
-      }}
-      transformOrigin={{
-        vertical: 'top',
-        horizontal: 'left',
-      }}
-    >
-      <Box sx={{ p: 2 }}>
-        {column === 'status' ? (
-          <Select
-            size="small"
-            value={filters.status}
-            onChange={(e) => setFilters({...filters, status: e.target.value})}
-            fullWidth
-            displayEmpty
-            autoFocus
-          >
-            <MenuItem value="">Tous les statuts</MenuItem>
-            <MenuItem value="non commencé">Non commencé</MenuItem>
-            <MenuItem value="en cours">En cours</MenuItem>
-            <MenuItem value="terminé">Terminé</MenuItem>
-          </Select>
-        ) : column === 'date' ? (
-          <DatePicker
-            value={dateFilter}
-            onChange={(newValue: Date | null) => {
-              setDateFilter(newValue);
-              setFilters({...filters, date: newValue ? newValue.toLocaleDateString() : ''});
-            }}
-            slotProps={{
-              textField: {
-                size: "small",
-                fullWidth: true,
-                autoFocus: true
-              }
-            }}
-          />
-        ) : (
-          <TextField
-            size="small"
-            placeholder={`Rechercher dans ${title}...`}
-            value={filters[column as keyof typeof filters]}
-            onChange={(e) => setFilters({...filters, [column]: e.target.value})}
-            fullWidth
-            autoFocus
-          />
-        )}
-      </Box>
-    </Popover>
-  );
+  const SearchPopover = ({ column, title }: { column: string, title: string }) => {
+    return (
+      <Popover
+        open={Boolean(anchorEl[column])}
+        anchorEl={anchorEl[column]}
+        onClose={() => handleSearchClose(column)}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'left',
+        }}
+      >
+        <Box sx={{ p: 2 }}>
+          {column === 'status' ? (
+            <Select
+              size="small"
+              value={filters.status}
+              onChange={(e) => setFilters({...filters, status: e.target.value})}
+              fullWidth
+              displayEmpty
+              autoFocus
+            >
+              <MenuItem value="">Tous les statuts</MenuItem>
+              <MenuItem value="non commencé">Non commencé</MenuItem>
+              <MenuItem value="en cours">En cours</MenuItem>
+              <MenuItem value="terminé">Terminé</MenuItem>
+            </Select>
+          ) : column === 'date' ? (
+            <DatePicker
+              value={dateFilter}
+              onChange={(newValue: Date | null) => {
+                setDateFilter(newValue);
+                setFilters({...filters, date: newValue ? newValue.toLocaleDateString() : ''});
+              }}
+              slotProps={{
+                textField: {
+                  size: "small",
+                  fullWidth: true,
+                  autoFocus: true
+                }
+              }}
+            />
+          ) : (
+            <TextField
+              size="small"
+              placeholder={`Rechercher dans ${title}...`}
+              value={filters[column as keyof typeof filters]}
+              onChange={(e) => setFilters({...filters, [column]: e.target.value})}
+              fullWidth
+              autoFocus
+            />
+          )}
+        </Box>
+      </Popover>
+    );
+  };
 
   const filteredRecords = currentRecords.filter(record => {
     const system = systems.find(s => s.id === record.systemId);
@@ -928,255 +927,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     }
   };
 
-  // Fonction pour annuler l'édition et réinitialiser le statut temporaire
-  const handleCancel = () => {
-    resetForm();
-    setTab(0);
-    setPendingStatus(null);
-  };
-
-  // 1. Choix de la consistance
-  if (!selectedConsistency) {
-    return (
-      <>
-        <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
-          <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Choisissez une consistance</Typography>
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 4, alignItems: 'center' }}>
-            {consistencies.map((cons) => (
-              <Button
-                key={cons}
-                variant="contained"
-                color="primary"
-                size="large"
-                sx={{ py: 2, px: 6, fontSize: 22 }}
-                onClick={() => handleSelectConsistency(cons)}
-              >
-                {cons}
-              </Button>
-            ))}
-            <IconButton color="primary" sx={{ ml: 1 }} onClick={() => setAddConsDialogOpen(true)}>
-              <AddIcon />
-            </IconButton>
-          </Box>
-        </Box>
-
-        {/* Historique des fiches de traçabilité en cours ou non commencées */}
-        <Box sx={{ maxWidth: 800, mx: 'auto', mt: 8, px: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-            <Typography variant="h5" sx={{ mb: 0, textAlign: 'center' }}>Opérations en attente</Typography>
-            <IconButton size="small" sx={{ ml: 1, color: '#888', p: 0.5 }} onClick={refreshAllRecords} title="Rafraîchir">
-              <RefreshIcon fontSize="small" />
-            </IconButton>
-          </Box>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableBody>
-                {pendingRecords.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} align="center" style={{ color: '#888' }}>
-                      Aucune opération en attente
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  pendingRecords.map((record: PendingRecord) => (
-                    <TableRow key={record.id}>
-                      <TableCell>{record.consistency}</TableCell>
-                      <TableCell>Véhicule {record.vehicleId}</TableCell>
-                      <TableCell>{record.systemName}</TableCell>
-                      <TableCell>{record.operationName}</TableCell>
-                      <TableCell>
-                        <span style={{
-                          display: 'inline-block',
-                          width: 14,
-                          height: 14,
-                          borderRadius: '50%',
-                          background: record.status === 'en cours' ? '#ff9800' : '#f44336',
-                          border: '1px solid #bbb',
-                          verticalAlign: 'middle',
-                          marginRight: 4
-                        }} />
-                        {(() => { console.log('Affichage statut', record.status, 'pour', record); return record.status || 'non commencé'; })()}
-                      </TableCell>
-                      <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
-                      <TableCell>{record.user || 'Inconnu'}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
-
-        <Dialog open={addConsDialogOpen} onClose={() => setAddConsDialogOpen(false)}>
-          <DialogTitle>Ajouter une consistance</DialogTitle>
-          <DialogContent>
-            <TextField
-              autoFocus
-              margin="dense"
-              label="Nom de la consistance"
-              fullWidth
-              value={newConsName}
-              onChange={e => setNewConsName(e.target.value)}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setAddConsDialogOpen(false)}>Annuler</Button>
-            <Button
-              onClick={() => {
-                setConsistencies([...consistencies, newConsName.trim()]);
-                setSelectedConsistency(newConsName.trim());
-                setSelectedVehicle(null);
-                setRecordsByConsistency(prev => {
-                  const newObj = { ...prev };
-                  const vehObj: { [vehicleId: number]: MaintenanceRecord[] } = {};
-                  VEHICLES.forEach(v => { vehObj[v.id] = []; });
-                  newObj[newConsName.trim()] = vehObj;
-                  return newObj;
-                });
-                setLocalSystems((prev) => ({ ...prev, [newConsName.trim()]: [] }));
-                setAddConsDialogOpen(false);
-                setNewConsName('');
-                setShowCustomSysForm(true);
-              }}
-              disabled={!newConsName.trim() || consistencies.includes(newConsName.trim())}
-              variant="contained"
-            >
-              Ajouter
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </>
-    );
-  }
-
-  // 2. Choix du véhicule (affiché en haut de l'interface principale aussi)
-  if (!selectedVehicle) {
-    return (
-      <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
-        <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Consistance : {selectedConsistency}</Typography>
-        <Typography variant="h6" sx={{ mb: 3, textAlign: 'center' }}>Choisissez un véhicule</Typography>
-        <FormControl fullWidth>
-          <InputLabel id="vehicle-select-label">Véhicule</InputLabel>
-          <Select
-            labelId="vehicle-select-label"
-            value={selectedVehicle ? String((selectedVehicle as Vehicle).id) : ''}
-            label="Véhicule"
-            onChange={(e: SelectChangeEvent<string>) => {
-              const veh = VEHICLES.find((v) => v.id === Number(e.target.value));
-              if (veh) setSelectedVehicle(veh);
-            }}
-          >
-            {VEHICLES.map((veh) => (
-              <MenuItem key={veh.id} value={String(veh.id)}>{veh.name}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
-    );
-  }
-
-  if (selectedConsistency !== 'IS710' && showCustomSysForm && (!localSystems[selectedConsistency] || localSystems[selectedConsistency].length === 0)) {
-    // Nouveau formulaire dynamique pour ajouter des systèmes et opérations
-    return (
-      <>
-        <Box sx={{ mt: 4, mb: 2 }}>
-          <Button variant="outlined" onClick={handleBack}>
-            ← Retour
-          </Button>
-        </Box>
-        <Box sx={{ maxWidth: 600, mx: 'auto', mt: 8 }}>
-          <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Définir les systèmes et opérations pour {selectedConsistency}</Typography>
-          <Box>
-            {newSystems.map((sys, sysIdx) => (
-              <Box key={sys.id} sx={{ mb: 3, p: 2, border: '1px solid #ccc', borderRadius: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <TextField
-                    label={`Nom du système #${sysIdx + 1}`}
-                    value={sys.name}
-                    onChange={e => updateSystemName(sys.id, e.target.value)}
-                    sx={{ flex: 1, mr: 2 }}
-                  />
-                  <Button color="error" onClick={() => removeSystem(sys.id)}>Supprimer système</Button>
-                </Box>
-                <Box sx={{ ml: 2 }}>
-                  {sys.operations.map((op, opIdx) => (
-                    <Box key={op.id} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <TextField
-                        label={`Opération #${opIdx + 1}`}
-                        value={op.name}
-                        onChange={e => updateOperationName(sys.id, op.id, e.target.value)}
-                        sx={{ flex: 1, mr: 2 }}
-                      />
-                      <Button color="error" onClick={() => removeOperation(sys.id, op.id)}>Supprimer</Button>
-                    </Box>
-                  ))}
-                  <Button onClick={() => addOperation(sys.id)}>Ajouter une opération</Button>
-                </Box>
-              </Box>
-            ))}
-            <Button variant="outlined" onClick={addSystem} sx={{ mb: 2 }}>Ajouter un système</Button>
-          </Box>
-          <Button
-            sx={{ mt: 3 }}
-            variant="contained"
-            color="success"
-            disabled={newSystems.length === 0 || newSystems.some(sys => !sys.name || sys.operations.length === 0 || sys.operations.some(op => !op.name))}
-            onClick={() => {
-              setLocalSystems(prev => ({
-                ...prev,
-                [selectedConsistency]: newSystems
-              }));
-              setShowCustomSysForm(false);
-            }}
-          >
-            Commencer la maintenance
-          </Button>
-        </Box>
-      </>
-    );
-  }
-
-  if (showPdf.operationId && showPdf.type) {
-    const record = recordsByConsistency[selectedConsistency][selectedVehicle!.id].find(r => r.operationId === showPdf.operationId);
-    return (
-      <PdfViewerSharepoint
-        operationCode={showPdf.operationId}
-        type={showPdf.type}
-        onBack={() => setShowPdf({operationId: null, type: undefined})}
-        setStatus={record && showPdf.allowStatusChange ? async (status) => {
-          if (selectedVehicle && selectedConsistency && record) {
-            setPendingStatus(status); // On stocke le statut choisi
-            setEditingRecord(record); // On ouvre le formulaire d'édition
-            setShowPdf({operationId: null, type: undefined});
-          }
-        } : undefined}
-        currentStatus={record?.status || 'non commencé'}
-        setTab={setTab}
-        systems={systems}
-        allowStatusChange={showPdf.allowStatusChange}
-      />
-    );
-  }
-  if (showViewer.url) {
-    const record = recordsByConsistency[selectedConsistency][selectedVehicle!.id].find(r => r.operationId === selectedOperation);
-    return (
-      <ViewerModal
-        url={showViewer.url}
-        onBack={() => setShowViewer({url: null})}
-        recordId={record?.id}
-        setStatus={record ? async (status) => {
-          if (selectedVehicle && selectedConsistency) {
-            const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r =>
-              r.id === record.id ? { ...r, status } : r
-            );
-            await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
-          }
-        } : undefined}
-        currentStatus={record?.status || 'non commencé'}
-      />
-    );
-  }
-
   // Affichage principal avec bouton retour global
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
@@ -1266,7 +1016,9 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         ) : (
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ fontWeight: 600, fontSize: isMobile ? '1.1rem' : '1.3rem', mb: isMobile ? 1 : 2 }}>Plan du véhicule {selectedVehicle.name}</Typography>
+              <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ fontWeight: 600, fontSize: isMobile ? '1.1rem' : '1.3rem', mb: isMobile ? 1 : 2 }}>
+                Plan du véhicule {selectedVehicle?.name || 'Non sélectionné'}
+              </Typography>
               <Button
                 variant="contained"
                 color="primary"
@@ -1499,7 +1251,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                   })()}
                 </Box>
                 <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                  <Button onClick={handleCancel}>{t.cancel}</Button>
+                  <Button onClick={handleBack}>{t.cancel}</Button>
                   <Button variant="contained" onClick={handleAddOrEdit} disabled={!selectedSystem || !selectedOperation}>
                     {editingRecord ? t.update : t.save}
                   </Button>
