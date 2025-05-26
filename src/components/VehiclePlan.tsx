@@ -964,10 +964,13 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         const sharepointConsistencies = await maintenanceService.getConsistencies();
         setConsistencies(sharepointConsistencies);
       }
-      // Puis recharger tous les enregistrements
+      // Puis recharger tous les enregistrements et mettre à jour le localStorage
       for (const cons of consistencies) {
         for (const vehicle of VEHICLES) {
           await loadRecords(cons, vehicle.id);
+          // Mettre à jour le localStorage avec les données fraiches de SharePoint
+          const records = await maintenanceService.getMaintenanceRecords(cons, vehicle.id);
+          localStorage.setItem(`records-${cons}-${vehicle.id}`, JSON.stringify(records));
         }
       }
     } catch (err) {
