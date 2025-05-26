@@ -260,7 +260,10 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
               url={objectUrl}
               status={currentStatus === 'terminé' ? 'terminé' : 'en cours'}
               onStatusChange={async (newStatus) => {
-                if (setStatus) await setStatus(newStatus);
+                if (setStatus) {
+                  console.log('[DEBUG] setStatus appelé avec', newStatus, 'pour record', { operationCode, type, currentStatus });
+                  await setStatus(newStatus);
+                }
               }}
               saving={saving}
               onSave={async (_data, _newStatus) => {}}
@@ -937,10 +940,17 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         onBack={() => setShowPdf({operationId: null, type: undefined})}
         setStatus={record && showPdf.allowStatusChange ? async (status) => {
           if (selectedVehicle && selectedConsistency && record) {
+            console.log('[DEBUG] setStatus appelé avec', status, 'pour record', record);
             // Mise à jour du statut dans le state local
-            const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r =>
-              r.id === record.id ? { ...r, status } : r
-            );
+            const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r => {
+              if (r.id === record.id) {
+                console.log('[DEBUG] Avant maj statut:', r);
+                const updated = { ...r, status };
+                console.log('[DEBUG] Après maj statut:', updated);
+                return updated;
+              }
+              return r;
+            });
             setRecordsByConsistency(prev => ({
               ...prev,
               [selectedConsistency]: {
