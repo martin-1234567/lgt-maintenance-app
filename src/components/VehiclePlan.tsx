@@ -1139,6 +1139,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
               r.id === record.id ? { ...r, status } : r
             );
             await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
+            await loadRecords(selectedConsistency, selectedVehicle.id);
             setShowPdf({operationId: null, type: undefined});
           }
         } : undefined}
