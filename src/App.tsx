@@ -610,4 +610,13 @@ function App() {
   );
 }
 
-export default App;
+function AppWrapper() {
+  return (
+    <MsalProvider instance={msalInstance}>
+      <App />
+    </MsalProvider>
+  );
+}
+
+export default AppWrapper;
+export { App };
