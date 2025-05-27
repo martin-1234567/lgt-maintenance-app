@@ -501,7 +501,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [pullDistance, setPullDistance] = useState(0);
-  const MIN_PULL_DISTANCE = 120; // px
+  const MIN_PULL_DISTANCE = 60; // px
   const [isRefreshing, setIsRefreshing] = useState(false);
   const lastRefreshTime = useRef<number>(0);
 
