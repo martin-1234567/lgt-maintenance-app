@@ -15,6 +15,11 @@ interface SharePointResponse {
   value: SharePointFile[];
 }
 
+interface SharePointUploadResponse {
+  '@microsoft.graph.downloadUrl': string;
+  // autres champs si besoin
+}
+
 export class MaintenanceService {
   private static instance: MaintenanceService;
   private accessToken: string | null = null;
@@ -149,5 +154,35 @@ export class MaintenanceService {
       console.error('Erreur lors de la sauvegarde des consistances:', error);
       throw new Error('Erreur lors de la sauvegarde des consistances');
     }
+  }
+
+  /**
+   * Copie un PDF de base en créant une nouvelle version nommée sur SharePoint.
+   * @param originalFileName Nom du PDF de base (ex: FT-LGT-V71-ECLA-ELEC.pdf)
+   * @param newFileName Nom de la copie (ex: V71-ECLA-ELEC-2025-05-27.pdf)
+   * @returns L'URL de téléchargement de la copie
+   */
+  public async copyTraceabilityPdf(originalFileName: string, newFileName: string): Promise<string> {
+    const headers = await this.getHeaders();
+    // 1. Récupérer le fichier d'origine
+    const response = await axios.get<SharePointResponse>(
+      `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${MAINTENANCE_FOLDER_ID}/children`,
+      { headers }
+    );
+    const originalFile = response.data.value.find((file: SharePointFile) => file.name === originalFileName);
+    if (!originalFile) throw new Error("Fichier PDF de base introuvable");
+
+    // 2. Télécharger le contenu du PDF d'origine
+    const pdfBlob = await axios.get(originalFile['@microsoft.graph.downloadUrl'], { responseType: 'arraybuffer' });
+
+    // 3. Uploader la copie avec le nouveau nom
+    const uploadRes = await axios.put<SharePointUploadResponse>(
+      `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${MAINTENANCE_FOLDER_ID}:/${newFileName}:/content`,
+      pdfBlob.data,
+      { headers: { ...headers, 'Content-Type': 'application/pdf' } }
+    );
+
+    // 4. Retourner l'URL de téléchargement de la copie
+    return uploadRes.data['@microsoft.graph.downloadUrl'];
   }
 } 

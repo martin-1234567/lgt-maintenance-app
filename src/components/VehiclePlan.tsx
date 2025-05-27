@@ -80,8 +80,9 @@ interface PdfViewerSharepointProps {
   systems: System[];
   allowStatusChange?: boolean;
   recordId?: string;
+  customTraceabilityUrl?: string;
 }
-function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentStatus, setTab, systems, allowStatusChange, recordId }: PdfViewerSharepointProps) {
+function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentStatus, setTab, systems, allowStatusChange, recordId, customTraceabilityUrl }: PdfViewerSharepointProps) {
   const { instance, accounts } = useMsal();
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [excelUrl, setExcelUrl] = useState<string | null>(null);
@@ -678,16 +679,30 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             : record
         );
       } else {
+        // Création d'un nouvel enregistrement avec copie du PDF
+        const system = currentSystems.find(s => s.id === selectedSystem);
+        const formattedSystemName = system ? system.name.replace(/\./g, '-') : selectedSystem;
+        const today = new Date();
+        const dateStr = today.toISOString().slice(0, 10); // format YYYY-MM-DD
+        const originalFileName = `FT-LGT-${formattedSystemName}.pdf`;
+        const newFileName = `${formattedSystemName}-${dateStr}.pdf`;
+        let customTraceabilityUrl: string | undefined = undefined;
+        try {
+          customTraceabilityUrl = await maintenanceService.copyTraceabilityPdf(originalFileName, newFileName);
+        } catch (e) {
+          console.error("Erreur lors de la copie du PDF de traçabilité :", e);
+        }
         const newRecord: MaintenanceRecord = {
           id: Date.now().toString(),
           vehicleId: selectedVehicle.id,
           systemId: selectedSystem,
           operationId: selectedOperation,
           position: { x: 0, y: 0 },
-          timestamp: new Date(),
+          timestamp: today,
           comment,
           user: userName,
-          status: 'non commencé'
+          status: 'non commencé',
+          customTraceabilityUrl
         };
         updatedRecords = [...currentRecords, newRecord];
       }
@@ -1076,6 +1091,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   // Affichage de la modale PDF (protocole ou traçabilité) si demandée
   if (showPdf.operationId && showPdf.type) {
     const record = recordsByConsistency[selectedConsistency]?.[selectedVehicle?.id || 0]?.find(r => r.id === showPdf.recordId);
+    // Détermination de l'URL à ouvrir pour la fiche de traçabilité
+    const customUrl = record?.customTraceabilityUrl;
     return (
       <PdfViewerSharepoint
         operationCode={showPdf.operationId}
@@ -1112,6 +1129,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         systems={systems}
         allowStatusChange={showPdf.allowStatusChange}
         recordId={showPdf.recordId}
+        // Ajout de la prop customTraceabilityUrl pour la logique d'ouverture
+        customTraceabilityUrl={customUrl}
       />
     );
   }
