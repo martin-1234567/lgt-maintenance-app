@@ -1425,8 +1425,20 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                   <Typography color="error" align="center" sx={{ mt: 4 }}>{error}</Typography>
                 ) : (
                   <Box sx={{ p: 3 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                      <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ fontWeight: 600, fontSize: isMobile ? '1.1rem' : '1.3rem', mb: isMobile ? 1 : 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexDirection: 'column' }}>
+                      <Typography
+                        variant={isMobile ? 'h5' : 'h4'}
+                        sx={{
+                          fontWeight: 700,
+                          fontFamily: `'Montserrat', 'Roboto', 'Arial', sans-serif`,
+                          fontSize: isMobile ? '1.3rem' : '2rem',
+                          textAlign: 'center',
+                          letterSpacing: 1,
+                          color: '#222',
+                          mb: isMobile ? 1 : 2,
+                          width: '100%'
+                        }}
+                      >
                         Plan du véhicule {selectedVehicle?.name || 'Non sélectionné'}
                       </Typography>
                       <Button
