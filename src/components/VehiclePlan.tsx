@@ -952,50 +952,70 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Se déclenche une seule fois au chargement initial
 
-  // Modification de la fonction refreshAllRecords pour qu'elle recharge aussi les consistances
-  const refreshAllRecords = async () => {
-    setLoading(true);
-    try {
-      // Recharger les consistances depuis SharePoint
-      if (accounts && accounts.length > 0) {
-        const response = await instance.acquireTokenSilent({
-          scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
-          account: accounts[0],
-        });
-        maintenanceService.setAccessToken(response.accessToken);
-        
-        // 1. Recharger les consistances
-        const sharepointConsistencies = await maintenanceService.getConsistencies();
-        setConsistencies(sharepointConsistencies);
-        
-        // 2. Pour chaque consistance, recharger tous les enregistrements
-        const newRecordsByConsistency: { [cons: string]: { [vehicleId: number]: MaintenanceRecord[] } } = {};
-        
-        for (const cons of sharepointConsistencies) {
-          newRecordsByConsistency[cons] = {};
-          
-          for (const vehicle of VEHICLES) {
-            // Recharger depuis SharePoint
-            const records = await maintenanceService.getMaintenanceRecords(cons, vehicle.id);
-            
-            // Mettre à jour le state
-            newRecordsByConsistency[cons][vehicle.id] = records;
-            
-            // Mettre à jour le localStorage
-            localStorage.setItem(`records-${cons}-${vehicle.id}`, JSON.stringify(records));
-          }
-        }
-        
-        // Mettre à jour le state global avec toutes les nouvelles données
-        setRecordsByConsistency(newRecordsByConsistency);
+  // Gestion du pull-to-refresh
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const lastRefreshTime = useRef<number>(0);
+
+  const handleScroll = async (e: React.UIEvent<HTMLDivElement>) => {
+    const element = e.currentTarget;
+    const now = Date.now();
+    
+    // Vérifier si on est en haut de page et si le dernier rafraîchissement date de plus de 5 secondes
+    if (element.scrollTop === 0 && !isRefreshing && (now - lastRefreshTime.current > 5000)) {
+      setIsRefreshing(true);
+      try {
+        await refreshAllRecords();
+        lastRefreshTime.current = now;
+      } catch (error) {
+        console.error('Erreur lors du rafraîchissement:', error);
+      } finally {
+        setIsRefreshing(false);
       }
+    }
+  };
+
+  // Modification de refreshAllRecords pour une meilleure synchronisation
+  const refreshAllRecords = async () => {
+    if (!accounts || accounts.length === 0) return;
+    
+    try {
+      const response = await instance.acquireTokenSilent({
+        scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
+        account: accounts[0],
+      });
+      maintenanceService.setAccessToken(response.accessToken);
+      
+      // 1. Recharger les consistances
+      const sharepointConsistencies = await maintenanceService.getConsistencies();
+      setConsistencies(sharepointConsistencies);
+      
+      // 2. Pour chaque consistance, recharger tous les enregistrements
+      const newRecordsByConsistency: { [cons: string]: { [vehicleId: number]: MaintenanceRecord[] } } = {};
+      
+      for (const cons of sharepointConsistencies) {
+        newRecordsByConsistency[cons] = {};
+        
+        for (const vehicle of VEHICLES) {
+          // Recharger depuis SharePoint
+          const records = await maintenanceService.getMaintenanceRecords(cons, vehicle.id);
+          
+          // Mettre à jour le state
+          newRecordsByConsistency[cons][vehicle.id] = records;
+          
+          // Mettre à jour le localStorage
+          localStorage.setItem(`records-${cons}-${vehicle.id}`, JSON.stringify(records));
+        }
+      }
+      
+      // Mettre à jour le state global avec toutes les nouvelles données
+      setRecordsByConsistency(newRecordsByConsistency);
+      
+      return Promise.resolve();
     } catch (err) {
       console.error('Erreur lors du rafraîchissement des enregistrements:', err);
       setError('Erreur lors du rafraîchissement des enregistrements');
-    } finally {
-      setLoading(false);
+      return Promise.reject(err);
     }
-    return Promise.resolve(); // Pour PullToRefresh
   };
 
   // Gestion du swipe avec des événements tactiles natifs
@@ -1030,14 +1050,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     };
 
     document.addEventListener('touchend', handleTouchEnd);
-  };
-
-  // Gestion du pull-to-refresh
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const element = e.currentTarget;
-    if (element.scrollTop === 0) {
-      refreshAllRecords();
-    }
   };
 
   // Affichage de la modale PDF (protocole ou traçabilité) si demandée
@@ -1097,6 +1109,21 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           position: 'relative'
         }}
       >
+        {isRefreshing && (
+          <Box sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            display: 'flex',
+            justifyContent: 'center',
+            padding: '10px',
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            zIndex: 1000
+          }}>
+            <CircularProgress size={24} />
+          </Box>
+        )}
         <Box sx={{ 
           minHeight: '100vh',
           overflowX: 'hidden'
