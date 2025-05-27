@@ -1076,8 +1076,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   // Affichage de la modale PDF (protocole ou traçabilité) si demandée
   if (showPdf.operationId && showPdf.type) {
     const record = recordsByConsistency[selectedConsistency]?.[selectedVehicle?.id || 0]?.find(r => r.id === showPdf.recordId);
-    // Détermination de l'URL à ouvrir pour la fiche de traçabilité
-    const customUrl = record?.customTraceabilityUrl;
     return (
       <PdfViewerSharepoint
         operationCode={showPdf.operationId}
@@ -1086,7 +1084,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         setStatus={record && showPdf.allowStatusChange ? async (status) => {
           if (selectedVehicle && selectedConsistency && record) {
             console.log('[DEBUG] setStatus appelé avec', status, 'pour record', record);
-            // Mise à jour du statut dans le state local
             const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r => {
               if (r.id === record.id) {
                 console.log('[DEBUG] Avant maj statut:', r);
@@ -1103,9 +1100,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                 [selectedVehicle.id]: updatedRecords
               }
             }));
-            // Sauvegarde dans SharePoint
             await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
-            // Fermeture de la modale après la sauvegarde
             setShowPdf({operationId: null, type: undefined});
           }
         } : undefined}
@@ -1114,8 +1109,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         systems={systems}
         allowStatusChange={showPdf.allowStatusChange}
         recordId={showPdf.recordId}
-        // Ajout de la prop customTraceabilityUrl pour la logique d'ouverture
-        customTraceabilityUrl={customUrl}
       />
     );
   }
