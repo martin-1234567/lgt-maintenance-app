@@ -1413,7 +1413,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                     </Box>
                   </Box>
                 )}
-                {/* Onglets HISTORIQUE et AJOUTER UN ENREGISTREMENT */}
+                {/* Onglets HISTORIQUE et AJOUTER UN ENREGISTREMENT toujours visibles */}
                 <Tabs
                   value={tab}
                   onChange={(_, v) => setTab(v)}
