@@ -1139,20 +1139,33 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
               <>
                 <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
                   <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Choisissez une consistance</Typography>
-                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 4, alignItems: 'center' }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 2,
+                      mt: 4,
+                      alignItems: 'center',
+                      overflowX: 'auto',
+                      WebkitOverflowScrolling: 'touch',
+                      px: 1,
+                      scrollbarWidth: 'thin',
+                      '&::-webkit-scrollbar': { height: 6 },
+                      '&::-webkit-scrollbar-thumb': { background: '#bbb', borderRadius: 3 }
+                    }}
+                  >
                     {consistencies.map((cons) => (
                       <Button
                         key={cons}
                         variant="contained"
                         color="primary"
                         size="large"
-                        sx={{ py: 2, px: 6, fontSize: 22 }}
+                        sx={{ py: 2, px: 6, fontSize: 22, minWidth: 120, flex: '0 0 auto' }}
                         onClick={() => handleSelectConsistency(cons)}
                       >
                         {cons}
                       </Button>
                     ))}
-                    <IconButton color="primary" sx={{ ml: 1 }} onClick={() => setAddConsDialogOpen(true)}>
+                    <IconButton color="primary" sx={{ ml: 1, flex: '0 0 auto' }} onClick={() => setAddConsDialogOpen(true)}>
                       <AddIcon />
                     </IconButton>
                   </Box>
