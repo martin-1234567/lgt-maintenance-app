@@ -974,47 +974,52 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     }
   };
 
-  // Modification de refreshAllRecords pour une meilleure synchronisation
+  // Fonction utilitaire pour comparer deux tableaux d'objets (par JSON.stringify)
+  function arraysEqual(a: any[], b: any[]) {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+
+  // Nouvelle version de refreshAllRecords
   const refreshAllRecords = async () => {
     if (!accounts || accounts.length === 0) return;
-    
+    setIsRefreshing(true);
     try {
       const response = await instance.acquireTokenSilent({
         scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
         account: accounts[0],
       });
       maintenanceService.setAccessToken(response.accessToken);
-      
-      // 1. Recharger les consistances
+
+      // 1. Consistances
       const sharepointConsistencies = await maintenanceService.getConsistencies();
-      setConsistencies(sharepointConsistencies);
-      
-      // 2. Pour chaque consistance, recharger tous les enregistrements
+      let needUpdate = false;
+      if (!arraysEqual(sharepointConsistencies, consistencies)) {
+        setConsistencies(sharepointConsistencies);
+        needUpdate = true;
+      }
+
+      // 2. Enregistrements
       const newRecordsByConsistency: { [cons: string]: { [vehicleId: number]: MaintenanceRecord[] } } = {};
-      
       for (const cons of sharepointConsistencies) {
         newRecordsByConsistency[cons] = {};
-        
         for (const vehicle of VEHICLES) {
-          // Recharger depuis SharePoint
           const records = await maintenanceService.getMaintenanceRecords(cons, vehicle.id);
-          
-          // Mettre à jour le state
+          const localRecords = recordsByConsistency[cons]?.[vehicle.id] || [];
+          if (!arraysEqual(records, localRecords)) {
+            needUpdate = true;
+          }
           newRecordsByConsistency[cons][vehicle.id] = records;
-          
-          // Mettre à jour le localStorage
           localStorage.setItem(`records-${cons}-${vehicle.id}`, JSON.stringify(records));
         }
       }
-      
-      // Mettre à jour le state global avec toutes les nouvelles données
-      setRecordsByConsistency(newRecordsByConsistency);
-      
-      return Promise.resolve();
+      if (needUpdate) {
+        setRecordsByConsistency(newRecordsByConsistency);
+      }
     } catch (err) {
       console.error('Erreur lors du rafraîchissement des enregistrements:', err);
       setError('Erreur lors du rafraîchissement des enregistrements');
-      return Promise.reject(err);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
