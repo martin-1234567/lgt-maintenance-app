@@ -1134,7 +1134,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       >
         {/* Bouton retour affiché uniquement si une consistance ou un véhicule est sélectionné */}
         {(selectedConsistency || selectedVehicle) && (
-          <Box sx={{ mt: 2, ml: 2 }}>
+          <Box sx={{ mt: { xs: 7, sm: 12 }, ml: 2 }}>
             <Button variant="outlined" onClick={handleBack} sx={{ fontWeight: 600, fontSize: { xs: '1.1rem', sm: '1rem' } }}>
               ← Retour
             </Button>
