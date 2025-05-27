@@ -1,14 +1,14 @@
 import React from 'react';
 import { AuthenticatedTemplate, UnauthenticatedTemplate } from '@azure/msal-react';
 import { Login } from './components/Login';
-import MainTabs from './components/MainTabs';
+import VehiclePlan from './components/VehiclePlan';
 import { systems } from './data/systems';
 
 function App() {
   return (
     <div className="App">
       <AuthenticatedTemplate>
-        <MainTabs systems={systems} />
+        <VehiclePlan systems={systems} />
       </AuthenticatedTemplate>
       <UnauthenticatedTemplate>
         <Login />
