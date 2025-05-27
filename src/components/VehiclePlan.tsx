@@ -999,7 +999,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   };
 
   // Gestion du swipe avec des événements tactiles natifs
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     const touch = e.touches[0];
     const startX = touch.clientX;
     const startY = touch.clientY;
@@ -1030,6 +1030,14 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     };
 
     document.addEventListener('touchend', handleTouchEnd);
+  };
+
+  // Gestion du pull-to-refresh
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const element = e.currentTarget;
+    if (element.scrollTop === 0) {
+      refreshAllRecords();
+    }
   };
 
   // Affichage de la modale PDF (protocole ou traçabilité) si demandée
@@ -1080,6 +1088,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
       <Box 
         onTouchStart={handleTouchStart}
+        onScroll={handleScroll}
         sx={{ 
           height: '100vh',
           overflow: 'auto',
