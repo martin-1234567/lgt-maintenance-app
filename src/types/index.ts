@@ -26,5 +26,4 @@ export interface MaintenanceRecord {
   comment?: string;
   user?: string;
   status: 'non commencé' | 'en cours' | 'terminé';
-  customTraceabilityUrl?: string;
 } 

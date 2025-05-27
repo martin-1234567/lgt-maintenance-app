@@ -80,9 +80,8 @@ interface PdfViewerSharepointProps {
   systems: System[];
   allowStatusChange?: boolean;
   recordId?: string;
-  customTraceabilityUrl?: string;
 }
-function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentStatus, setTab, systems, allowStatusChange, recordId, customTraceabilityUrl }: PdfViewerSharepointProps) {
+function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentStatus, setTab, systems, allowStatusChange, recordId }: PdfViewerSharepointProps) {
   const { instance, accounts } = useMsal();
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [excelUrl, setExcelUrl] = useState<string | null>(null);
@@ -668,7 +667,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     }
   };
 
-  // Mise à jour de handleAddOrEdit pour utiliser pendingStatus si présent
+  // Mise à jour de handleAddOrEdit pour supprimer la copie du PDF
   const handleAddOrEdit = async () => {
     if (selectedSystem && selectedOperation && selectedVehicle && selectedConsistency) {
       let updatedRecords: MaintenanceRecord[];
@@ -679,30 +678,16 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             : record
         );
       } else {
-        // Création d'un nouvel enregistrement avec copie du PDF
-        const system = currentSystems.find(s => s.id === selectedSystem);
-        const formattedSystemName = system ? system.name.replace(/\./g, '-') : selectedSystem;
-        const today = new Date();
-        const dateStr = today.toISOString().slice(0, 10); // format YYYY-MM-DD
-        const originalFileName = `FT-LGT-${formattedSystemName}.pdf`;
-        const newFileName = `${formattedSystemName}-${dateStr}.pdf`;
-        let customTraceabilityUrl: string | undefined = undefined;
-        try {
-          customTraceabilityUrl = await maintenanceService.copyTraceabilityPdf(originalFileName, newFileName);
-        } catch (e) {
-          console.error("Erreur lors de la copie du PDF de traçabilité :", e);
-        }
         const newRecord: MaintenanceRecord = {
           id: Date.now().toString(),
           vehicleId: selectedVehicle.id,
           systemId: selectedSystem,
           operationId: selectedOperation,
           position: { x: 0, y: 0 },
-          timestamp: today,
+          timestamp: new Date(),
           comment,
           user: userName,
-          status: 'non commencé',
-          customTraceabilityUrl
+          status: 'non commencé'
         };
         updatedRecords = [...currentRecords, newRecord];
       }
