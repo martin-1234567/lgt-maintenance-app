@@ -404,13 +404,16 @@ function App() {
           }}
         />
       )}
-      <span
-        style={{
+      <Typography
+        variant={isMobile ? 'h5' : 'h3'}
+        sx={{
+          fontWeight: 700,
+          fontFamily: `'Montserrat', 'Roboto', 'Arial', sans-serif`,
           fontSize: isMobile ? '5vw' : '2.5rem',
-          fontWeight: 'bold',
-          letterSpacing: 1,
-          textShadow: isMobile ? '1px 1px 4px #222' : '1px 1px 8px #222',
           textAlign: 'center',
+          letterSpacing: 1,
+          color: headerText,
+          textShadow: isMobile ? '1px 1px 4px #222' : '1px 1px 8px #222',
           width: isMobile ? '100%' : 'auto',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
@@ -424,7 +427,7 @@ function App() {
         }}
       >
         {t.title}
-      </span>
+      </Typography>
       {isMobile && (
         <IconButton onClick={handleSettingsClick} sx={{ color: 'white', position: 'absolute', right: 4, top: 6, p: 1 }} size="small">
           <SettingsIcon fontSize="medium" />
