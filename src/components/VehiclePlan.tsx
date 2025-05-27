@@ -682,6 +682,31 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     );
   };
 
+  // Fonction pour obtenir toutes les fiches terminées
+  const getDoneRecords = (): PendingRecord[] => {
+    return Object.entries(recordsByConsistency).flatMap(([cons, vehicles]) =>
+      Object.entries(vehicles).flatMap(([vehicleId, records]) =>
+        records
+          .filter(record => record.status === 'terminé')
+          .map(record => {
+            const currentSystems = cons === 'IS710' ? systems : (localSystems[cons] || []);
+            const system = currentSystems.find(s => s.id === record.systemId);
+            const operation = system?.operations.find(o => o.id === record.operationId);
+            return {
+              ...record,
+              consistency: cons,
+              vehicleId: Number(vehicleId),
+              systemName: system?.name || record.systemId,
+              operationName: operation?.name || record.operationId
+            };
+          })
+      )
+    );
+  };
+
+  const pendingRecords = getPendingRecords();
+  const doneRecords = getDoneRecords();
+
   // Mise à jour de useEffect pour charger les enregistrements
   useEffect(() => {
     if (selectedVehicle && selectedConsistency) {
@@ -698,7 +723,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   }, [localSystems]);
 
   const currentRecords = recordsByConsistency[selectedConsistency]?.[selectedVehicle?.id || 0] || [];
-  const pendingRecords = getPendingRecords();
 
   // Juste avant le rendu du tableau d'attente
   console.log('pendingRecords', pendingRecords);
@@ -1219,6 +1243,49 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                                   marginRight: 4
                                 }} />
                                 {(() => { console.log('Affichage statut', record.status, 'pour', record); return record.status || 'non commencé'; })()}
+                              </TableCell>
+                              <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
+                              <TableCell>{record.user || 'Inconnu'}</TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+                {/* Tableau des opérations terminées */}
+                <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4, px: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                    <Typography variant="h5" sx={{ mb: 0, textAlign: 'center' }}>Opérations terminées</Typography>
+                  </Box>
+                  <TableContainer component={Paper}>
+                    <Table>
+                      <TableBody>
+                        {doneRecords.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} align="center" style={{ color: '#888' }}>
+                              Aucune opération terminée
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          doneRecords.map((record: PendingRecord) => (
+                            <TableRow key={record.id}>
+                              <TableCell>{record.consistency}</TableCell>
+                              <TableCell>Véhicule {record.vehicleId}</TableCell>
+                              <TableCell>{record.systemName}</TableCell>
+                              <TableCell>{record.operationName}</TableCell>
+                              <TableCell>
+                                <span style={{
+                                  display: 'inline-block',
+                                  width: 14,
+                                  height: 14,
+                                  borderRadius: '50%',
+                                  background: '#4caf50',
+                                  border: '1px solid #bbb',
+                                  verticalAlign: 'middle',
+                                  marginRight: 4
+                                }} />
+                                terminé
                               </TableCell>
                               <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
                               <TableCell>{record.user || 'Inconnu'}</TableCell>
