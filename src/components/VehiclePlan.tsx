@@ -983,13 +983,15 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   const refreshAllRecords = async () => {
     if (!accounts || accounts.length === 0) return;
     setIsRefreshing(true);
+    let timeoutId: NodeJS.Timeout | null = null;
     try {
+      // Timeout de sécurité : arrête le refresh au bout de 10 secondes quoi qu'il arrive
+      timeoutId = setTimeout(() => setIsRefreshing(false), 10000);
       const response = await instance.acquireTokenSilent({
         scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
         account: accounts[0],
       });
       maintenanceService.setAccessToken(response.accessToken);
-
       // 1. Consistances
       const sharepointConsistencies = await maintenanceService.getConsistencies();
       let needUpdate = false;
@@ -997,7 +999,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         setConsistencies(sharepointConsistencies);
         needUpdate = true;
       }
-
       // 2. Enregistrements
       const newRecordsByConsistency: { [cons: string]: { [vehicleId: number]: MaintenanceRecord[] } } = {};
       for (const cons of sharepointConsistencies) {
@@ -1020,6 +1021,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       setError('Erreur lors du rafraîchissement des enregistrements');
     } finally {
       setIsRefreshing(false);
+      if (timeoutId) clearTimeout(timeoutId);
     }
   };
 
@@ -1114,7 +1116,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           position: 'relative'
         }}
       >
-        {/* Bouton retour en haut à gauche, dans le flux normal */}
+        {/* Bouton retour unique en haut à gauche */}
         <Box sx={{ mt: 2, ml: 2 }}>
           <Button variant="outlined" onClick={handleBack} sx={{ fontWeight: 600, fontSize: { xs: '1.1rem', sm: '1rem' } }}>
             ← Retour
