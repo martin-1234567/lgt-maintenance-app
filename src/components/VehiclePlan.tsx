@@ -1132,14 +1132,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           position: 'relative'
         }}
       >
-        {/* Bouton retour affiché uniquement si une consistance ou un véhicule est sélectionné */}
-        {(selectedConsistency || selectedVehicle) && (
-          <Box sx={{ mt: { xs: 7, sm: 12 }, ml: 2 }}>
-            <Button variant="outlined" onClick={handleBack} sx={{ fontWeight: 600, fontSize: { xs: '1.1rem', sm: '1rem' } }}>
-              ← Retour
-            </Button>
-          </Box>
-        )}
         {isRefreshing && (
           <Box sx={{
             position: 'fixed',
@@ -1160,11 +1152,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           overflowX: 'hidden'
         }}>
           <Box>
-            <Box sx={{ mt: 4, mb: 2 }}>
-              <Button variant="outlined" onClick={handleBack}>
-                ← Retour
-              </Button>
-            </Box>
+            {/* SUPPRESSION DU BOUTON RETOUR ICI */}
             {/* PAGE D'ACCUEIL : choix consistance + tableau opérations en attente */}
             { !selectedConsistency && (
               <>
