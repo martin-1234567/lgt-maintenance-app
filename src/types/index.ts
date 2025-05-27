@@ -1,3 +1,9 @@
+export interface Vehicle {
+  id: number;
+  name: string;
+  planImage: string;
+}
+
 export interface System {
   id: string;
   name: string;
@@ -8,12 +14,7 @@ export interface Operation {
   id: string;
   name: string;
   protocolUrl?: string;
-}
-
-export interface Vehicle {
-  id: number;
-  name: string;
-  planImage: string;
+  traceabilityUrl?: string;
 }
 
 export interface MaintenanceRecord {
@@ -21,9 +22,12 @@ export interface MaintenanceRecord {
   vehicleId: number;
   systemId: string;
   operationId: string;
-  position: { x: number; y: number };
+  position: {
+    x: number;
+    y: number;
+  };
   timestamp: Date;
   comment?: string;
+  status?: 'non commencé' | 'en cours' | 'terminé';
   user?: string;
-  status: 'non commencé' | 'en cours' | 'terminé';
 } 

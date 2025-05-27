@@ -166,7 +166,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         if (file) {
           console.log('Fichier SharePoint trouvé (protocole) :', file);
           if (file['@microsoft.graph.downloadUrl']) {
-            setObjectUrl(file['@microsoft.graph.downloadUrl']);
+          setObjectUrl(file['@microsoft.graph.downloadUrl']);
             console.log('Affichage du PDF via PDF.js :', file['@microsoft.graph.downloadUrl']);
           } else {
             setError('Impossible d\'afficher le PDF');
@@ -190,7 +190,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         if (file) {
           console.log('Fichier SharePoint trouvé (traçabilité) :', file);
           if (file['@microsoft.graph.downloadUrl']) {
-            setObjectUrl(file['@microsoft.graph.downloadUrl']);
+          setObjectUrl(file['@microsoft.graph.downloadUrl']);
             console.log('Affichage du PDF via PDF.js :', file['@microsoft.graph.downloadUrl']);
           } else {
             setError('Impossible d\'afficher le PDF');
@@ -667,7 +667,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     }
   };
 
-  // Mise à jour de handleAddOrEdit pour supprimer la copie du PDF
+  // Mise à jour de handleAddOrEdit pour utiliser pendingStatus si présent
   const handleAddOrEdit = async () => {
     if (selectedSystem && selectedOperation && selectedVehicle && selectedConsistency) {
       let updatedRecords: MaintenanceRecord[];
@@ -1084,6 +1084,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         setStatus={record && showPdf.allowStatusChange ? async (status) => {
           if (selectedVehicle && selectedConsistency && record) {
             console.log('[DEBUG] setStatus appelé avec', status, 'pour record', record);
+            // Mise à jour du statut dans le state local
             const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r => {
               if (r.id === record.id) {
                 console.log('[DEBUG] Avant maj statut:', r);
@@ -1100,7 +1101,9 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                 [selectedVehicle.id]: updatedRecords
               }
             }));
+            // Sauvegarde dans SharePoint
             await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
+            // Fermeture de la modale après la sauvegarde
             setShowPdf({operationId: null, type: undefined});
           }
         } : undefined}
@@ -1122,7 +1125,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         onTouchEnd={handleTouchEnd}
         onScroll={handleScroll}
         sx={{ 
-          height: '100%',
+          height: '100vh',
           overflow: 'auto',
           WebkitOverflowScrolling: 'touch',
           touchAction: 'pan-y',
@@ -1145,528 +1148,529 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           </Box>
         )}
         <Box sx={{ 
-          minHeight: '100%',
-          overflowX: 'hidden',
-          p: 3
+          minHeight: '100vh',
+          overflowX: 'hidden'
         }}>
-          {/* PAGE D'ACCUEIL : choix consistance + tableau opérations en attente */}
-          {!selectedConsistency && (
-            <>
-              <Box sx={{ maxWidth: 400, mx: 'auto', mb: 8 }}>
-                <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Choisissez une consistance</Typography>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    gap: 2,
-                    mt: 4,
-                    alignItems: 'center',
-                    overflowX: 'auto',
-                    WebkitOverflowScrolling: 'touch',
-                    px: 1,
-                    scrollbarWidth: 'thin',
-                    '&::-webkit-scrollbar': { height: 6 },
-                    '&::-webkit-scrollbar-thumb': { background: '#bbb', borderRadius: 3 }
-                  }}
-                >
-                  {consistencies.map((cons) => (
-                    <Button
-                      key={cons}
-                      variant="contained"
-                      color="primary"
-                      size="large"
-                      sx={{ py: 2, px: 6, fontSize: 22, minWidth: 120, flex: '0 0 auto' }}
-                      onClick={() => handleSelectConsistency(cons)}
-                    >
-                      {cons}
-                    </Button>
-                  ))}
-                  <IconButton color="primary" sx={{ ml: 1, flex: '0 0 auto' }} onClick={() => setAddConsDialogOpen(true)}>
-                    <AddIcon />
-                  </IconButton>
-                </Box>
-              </Box>
-
-              {/* Tableau des opérations en attente */}
-              <Box sx={{ maxWidth: 800, mx: 'auto', mb: 8 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                  <Typography variant="h5" sx={{ mb: 0, textAlign: 'center' }}>Opérations en attente</Typography>
-                  <IconButton size="small" sx={{ ml: 1, color: '#888', p: 0.5 }} onClick={refreshAllRecords} title="Rafraîchir">
-                    <RefreshIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-                <TableContainer component={Paper}>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Consistance</TableCell>
-                        <TableCell>Véhicule</TableCell>
-                        <TableCell>Système</TableCell>
-                        <TableCell>Opération</TableCell>
-                        <TableCell>Statut</TableCell>
-                        <TableCell>Date</TableCell>
-                        <TableCell>Utilisateur</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {pendingRecords.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7} align="center" style={{ color: '#888' }}>
-                            Aucune opération en attente
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        pendingRecords.map((record: PendingRecord) => (
-                          <TableRow key={record.id}>
-                            <TableCell>{record.consistency}</TableCell>
-                            <TableCell>Véhicule {record.vehicleId}</TableCell>
-                            <TableCell>{record.systemName}</TableCell>
-                            <TableCell>{record.operationName}</TableCell>
-                            <TableCell>
-                              <span style={{
-                                display: 'inline-block',
-                                width: 14,
-                                height: 14,
-                                borderRadius: '50%',
-                                background: record.status === 'en cours' ? '#ff9800' : '#f44336',
-                                border: '1px solid #bbb',
-                                verticalAlign: 'middle',
-                                marginRight: 4
-                              }} />
-                              {record.status || 'non commencé'}
-                            </TableCell>
-                            <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
-                            <TableCell>{record.user || 'Inconnu'}</TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Box>
-
-              {/* Tableau des opérations terminées */}
-              <Box sx={{ maxWidth: 800, mx: 'auto' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                  <Typography variant="h5" sx={{ mb: 0, textAlign: 'center' }}>Opérations terminées</Typography>
-                </Box>
-                <TableContainer component={Paper}>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Consistance</TableCell>
-                        <TableCell>Véhicule</TableCell>
-                        <TableCell>Système</TableCell>
-                        <TableCell>Opération</TableCell>
-                        <TableCell>Statut</TableCell>
-                        <TableCell>Date</TableCell>
-                        <TableCell>Utilisateur</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {doneRecords.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7} align="center" style={{ color: '#888' }}>
-                            Aucune opération terminée
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        doneRecords.map((record: PendingRecord) => (
-                          <TableRow key={record.id}>
-                            <TableCell>{record.consistency}</TableCell>
-                            <TableCell>Véhicule {record.vehicleId}</TableCell>
-                            <TableCell>{record.systemName}</TableCell>
-                            <TableCell>{record.operationName}</TableCell>
-                            <TableCell>
-                              <span style={{
-                                display: 'inline-block',
-                                width: 14,
-                                height: 14,
-                                borderRadius: '50%',
-                                background: '#4caf50',
-                                border: '1px solid #bbb',
-                                verticalAlign: 'middle',
-                                marginRight: 4
-                              }} />
-                              terminé
-                            </TableCell>
-                            <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
-                            <TableCell>{record.user || 'Inconnu'}</TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Box>
-            </>
-          )}
-
-          {/* Reste du code existant pour la vue détaillée */}
-          {/* Ensuite, si consistance sélectionnée mais pas de véhicule, choix du véhicule */}
-          { selectedConsistency && !selectedVehicle && (
-            <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
-              <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Consistance : {selectedConsistency}</Typography>
-              <Typography variant="h6" sx={{ mb: 3, textAlign: 'center' }}>Choisissez un véhicule</Typography>
-              <FormControl fullWidth>
-                <InputLabel id="vehicle-select-label">Véhicule</InputLabel>
-                <Select
-                  labelId="vehicle-select-label"
-                  value={selectedVehicle ? String((selectedVehicle as Vehicle).id) : ''}
-                  label="Véhicule"
-                  onChange={(e: SelectChangeEvent<string>) => {
-                    const veh = VEHICLES.find((v) => v.id === Number(e.target.value));
-                    if (veh) setSelectedVehicle(veh);
-                  }}
-                >
-                  {VEHICLES.map((veh) => (
-                    <MenuItem key={veh.id} value={String(veh.id)}>{veh.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-          )}
-          {/* Sinon, vue détaillée véhicule/consistance comme actuellement */}
-          { selectedConsistency && selectedVehicle && (
-            <>
-              <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 2, mb: 2, ml: isMobile ? 0 : 8 }}>
-                <Typography variant="h6" sx={{ fontSize: isMobile ? '1rem' : undefined }}>Consistance : {selectedConsistency}</Typography>
-                <FormControl sx={{ minWidth: 220 }} fullWidth={isMobile}>
-                  <InputLabel id="vehicle-select-label-main">Véhicule</InputLabel>
-                  <Select
-                    labelId="vehicle-select-label-main"
-                    value={selectedVehicle ? String((selectedVehicle as Vehicle).id) : ''}
-                    label="Véhicule"
-                    onChange={(e: SelectChangeEvent<string>) => {
-                      const veh = VEHICLES.find((v) => v.id === Number(e.target.value));
-                      if (veh) setSelectedVehicle(veh);
+          <Box>
+            {/* SUPPRESSION DU BOUTON RETOUR ICI */}
+            {/* PAGE D'ACCUEIL : choix consistance + tableau opérations en attente */}
+            { !selectedConsistency && (
+      <>
+        <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
+          <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Choisissez une consistance</Typography>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 2,
+                      mt: 4,
+                      alignItems: 'center',
+                      overflowX: 'auto',
+                      WebkitOverflowScrolling: 'touch',
+                      px: 1,
+                      scrollbarWidth: 'thin',
+                      '&::-webkit-scrollbar': { height: 6 },
+                      '&::-webkit-scrollbar-thumb': { background: '#bbb', borderRadius: 3 }
                     }}
                   >
-                    {VEHICLES.map((veh) => (
-                      <MenuItem key={veh.id} value={String(veh.id)}>{veh.name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                {/* Icône suppression consistance sauf IS710 */}
-                {selectedConsistency !== 'IS710' && (
-                  <IconButton color="error" onClick={() => handleDeleteConsistency(selectedConsistency)} sx={{ alignSelf: isMobile ? 'flex-end' : 'center' }}>
-                    <DeleteIcon />
-                  </IconButton>
-                )}
-                {/* Bouton toujours visible pour ajouter un système */}
-                <Button variant="outlined" sx={{ mt: isMobile ? 1 : 0 }} fullWidth={isMobile} onClick={() => setShowAddSystemForm(v => !v)}>
-                  Ajouter un système
-                </Button>
-              </Box>
-              {showAddSystemForm && (
-                <Box sx={{ maxWidth: 400, mx: 'auto', mb: 3, p: 2, border: '1px solid #ccc', borderRadius: 2 }}>
-                  <Typography variant="subtitle1" sx={{ mb: 1 }}>Ajouter un système</Typography>
-                  <TextField
-                    label="Nom du système"
-                    value={newSysName}
-                    onChange={e => setNewSysName(e.target.value)}
-                    fullWidth
-                    sx={{ mb: 2 }}
-                  />
-                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                    <TextField
-                      label="Nom de l'opération"
-                      value={newOpName}
-                      onChange={e => setNewOpName(e.target.value)}
-                      fullWidth
-                    />
-                    <Button variant="outlined" onClick={handleAddSysOp} disabled={!newOpName.trim()}>
-                      Ajouter opération
-                    </Button>
-                  </Box>
-                  <Box sx={{ mb: 2 }}>
-                    {newSysOps.map(op => (
-                      <span key={op.id} style={{ marginRight: 8 }}>{op.name}</span>
-                    ))}
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                    <Button onClick={() => { resetForm(); setTab(0); }}>Annuler</Button>
-                    <Button variant="contained" onClick={handleSaveNewSystem} disabled={!newSysName.trim() || newSysOps.length === 0}>
-                      Ajouter
-                    </Button>
-                  </Box>
-                </Box>
-              )}
-              {/* Onglets HISTORIQUE et AJOUTER UN ENREGISTREMENT toujours visibles */}
-              <Tabs
-                value={tab}
-                onChange={(_, v) => setTab(v)}
-                variant={isMobile ? 'scrollable' : 'standard'}
-                scrollButtons={isMobile ? 'auto' : false}
-                sx={{ minHeight: isMobile ? 36 : 48, mb: isMobile ? 1 : 2 }}
+            {consistencies.map((cons) => (
+              <Button
+                key={cons}
+                variant="contained"
+                color="primary"
+                size="large"
+                        sx={{ py: 2, px: 6, fontSize: 22, minWidth: 120, flex: '0 0 auto' }}
+                onClick={() => handleSelectConsistency(cons)}
               >
-                <Tab label={t.history} />
-                <Tab label={editingRecord ? t.edit : t.addRecord} />
-              </Tabs>
-              {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
-                  <CircularProgress />
-                </Box>
-              ) : error ? (
-                <Typography color="error" align="center" sx={{ mt: 4 }}>{error}</Typography>
-              ) : (
-                <Box sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexDirection: 'column' }}>
-                    <Typography
-                      variant={isMobile ? 'h5' : 'h4'}
-                      sx={{
-                        fontWeight: 700,
-                        fontFamily: `'Montserrat', 'Roboto', 'Arial', sans-serif`,
-                        fontSize: isMobile ? '1.3rem' : '2rem',
-                        textAlign: 'center',
-                        letterSpacing: 1,
-                        color: '#222',
-                        mb: isMobile ? 1 : 2,
-                        width: '100%'
-                      }}
-                    >
-                      Plan du véhicule {selectedVehicle?.name || 'Non sélectionné'}
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      fullWidth={isMobile}
-                      sx={{ my: isMobile ? 1 : 2, py: isMobile ? 1.2 : 1.5, fontSize: isMobile ? '1rem' : '1.1rem' }}
-                      onClick={() => setSelectedConsistency('')}
-                    >
-                      {selectedConsistency || 'Choisir la consistance'}
-                    </Button>
+                {cons}
+              </Button>
+            ))}
+                    <IconButton color="primary" sx={{ ml: 1, flex: '0 0 auto' }} onClick={() => setAddConsDialogOpen(true)}>
+              <AddIcon />
+            </IconButton>
+          </Box>
+        </Box>
+                {/* Tableau des opérations en attente */}
+        <Box sx={{ maxWidth: 800, mx: 'auto', mt: 8, px: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+            <Typography variant="h5" sx={{ mb: 0, textAlign: 'center' }}>Opérations en attente</Typography>
+            <IconButton size="small" sx={{ ml: 1, color: '#888', p: 0.5 }} onClick={refreshAllRecords} title="Rafraîchir">
+              <RefreshIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableBody>
+                {pendingRecords.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" style={{ color: '#888' }}>
+                      Aucune opération en attente
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  pendingRecords.map((record: PendingRecord) => (
+                    <TableRow key={record.id}>
+                      <TableCell>{record.consistency}</TableCell>
+                      <TableCell>Véhicule {record.vehicleId}</TableCell>
+                      <TableCell>{record.systemName}</TableCell>
+                      <TableCell>{record.operationName}</TableCell>
+                      <TableCell>
+                        <span style={{
+                          display: 'inline-block',
+                          width: 14,
+                          height: 14,
+                          borderRadius: '50%',
+                          background: record.status === 'en cours' ? '#ff9800' : '#f44336',
+                          border: '1px solid #bbb',
+                          verticalAlign: 'middle',
+                          marginRight: 4
+                        }} />
+                                {(() => { console.log('Affichage statut', record.status, 'pour', record); return record.status || 'non commencé'; })()}
+                      </TableCell>
+                      <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
+                      <TableCell>{record.user || 'Inconnu'}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+                {/* Tableau des opérations terminées */}
+                <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4, px: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                    <Typography variant="h5" sx={{ mb: 0, textAlign: 'center' }}>Opérations terminées</Typography>
                   </Box>
-                  {selectedConsistency ? (
-                    <Typography variant="h6" sx={{ mb: 2 }}>Consistance actuelle : {selectedConsistency}</Typography>
-                  ) : null}
-                  {tab === 0 && (
-                    isMobile ? (
-                      <Box sx={{ width: '100%', mb: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <TableContainer component={Paper}>
+                    <Table>
+                      <TableBody>
+                        {doneRecords.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} align="center" style={{ color: '#888' }}>
+                              Aucune opération terminée
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          doneRecords.map((record: PendingRecord) => (
+                            <TableRow key={record.id}>
+                              <TableCell>{record.consistency}</TableCell>
+                              <TableCell>Véhicule {record.vehicleId}</TableCell>
+                              <TableCell>{record.systemName}</TableCell>
+                              <TableCell>{record.operationName}</TableCell>
+                              <TableCell>
+                                <span style={{
+                                  display: 'inline-block',
+                                  width: 14,
+                                  height: 14,
+                                  borderRadius: '50%',
+                                  background: '#4caf50',
+                                  border: '1px solid #bbb',
+                                  verticalAlign: 'middle',
+                                  marginRight: 4
+                                }} />
+                                terminé
+                              </TableCell>
+                              <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
+                              <TableCell>{record.user || 'Inconnu'}</TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+        <Dialog open={addConsDialogOpen} onClose={() => setAddConsDialogOpen(false)}>
+          <DialogTitle>Ajouter une consistance</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Nom de la consistance"
+              fullWidth
+              value={newConsName}
+              onChange={e => setNewConsName(e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAddConsDialogOpen(false)}>Annuler</Button>
+            <Button
+                      onClick={async () => {
+                        await handleAddConsistency(newConsName.trim());
+                setAddConsDialogOpen(false);
+                setShowCustomSysForm(true);
+              }}
+              disabled={!newConsName.trim() || consistencies.includes(newConsName.trim())}
+              variant="contained"
+            >
+              Ajouter
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </>
+            )}
+            {/* Ensuite, si consistance sélectionnée mais pas de véhicule, choix du véhicule */}
+            { selectedConsistency && !selectedVehicle && (
+      <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
+        <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Consistance : {selectedConsistency}</Typography>
+        <Typography variant="h6" sx={{ mb: 3, textAlign: 'center' }}>Choisissez un véhicule</Typography>
+        <FormControl fullWidth>
+          <InputLabel id="vehicle-select-label">Véhicule</InputLabel>
+          <Select
+            labelId="vehicle-select-label"
+            value={selectedVehicle ? String((selectedVehicle as Vehicle).id) : ''}
+            label="Véhicule"
+            onChange={(e: SelectChangeEvent<string>) => {
+              const veh = VEHICLES.find((v) => v.id === Number(e.target.value));
+              if (veh) setSelectedVehicle(veh);
+            }}
+          >
+            {VEHICLES.map((veh) => (
+              <MenuItem key={veh.id} value={String(veh.id)}>{veh.name}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+            )}
+            {/* Sinon, vue détaillée véhicule/consistance comme actuellement */}
+            { selectedConsistency && selectedVehicle && (
+              <>
+        <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 2, mb: 2, ml: isMobile ? 0 : 8 }}>
+          <Typography variant="h6" sx={{ fontSize: isMobile ? '1rem' : undefined }}>Consistance : {selectedConsistency}</Typography>
+          <FormControl sx={{ minWidth: 220 }} fullWidth={isMobile}>
+            <InputLabel id="vehicle-select-label-main">Véhicule</InputLabel>
+            <Select
+              labelId="vehicle-select-label-main"
+              value={selectedVehicle ? String((selectedVehicle as Vehicle).id) : ''}
+              label="Véhicule"
+              onChange={(e: SelectChangeEvent<string>) => {
+                const veh = VEHICLES.find((v) => v.id === Number(e.target.value));
+                if (veh) setSelectedVehicle(veh);
+              }}
+            >
+              {VEHICLES.map((veh) => (
+                <MenuItem key={veh.id} value={String(veh.id)}>{veh.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          {selectedConsistency !== 'IS710' && (
+            <IconButton color="error" onClick={() => handleDeleteConsistency(selectedConsistency)} sx={{ alignSelf: isMobile ? 'flex-end' : 'center' }}>
+              <DeleteIcon />
+            </IconButton>
+          )}
+          <Button variant="outlined" sx={{ mt: isMobile ? 1 : 0 }} fullWidth={isMobile} onClick={() => setShowAddSystemForm(v => !v)}>
+            Ajouter un système
+          </Button>
+        </Box>
+        {showAddSystemForm && (
+          <Box sx={{ maxWidth: 400, mx: 'auto', mb: 3, p: 2, border: '1px solid #ccc', borderRadius: 2 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>Ajouter un système</Typography>
+            <TextField
+              label="Nom du système"
+              value={newSysName}
+              onChange={e => setNewSysName(e.target.value)}
+              fullWidth
+              sx={{ mb: 2 }}
+            />
+            <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+              <TextField
+                label="Nom de l'opération"
+                value={newOpName}
+                onChange={e => setNewOpName(e.target.value)}
+                fullWidth
+              />
+              <Button variant="outlined" onClick={handleAddSysOp} disabled={!newOpName.trim()}>
+                Ajouter opération
+              </Button>
+            </Box>
+            <Box sx={{ mb: 2 }}>
+              {newSysOps.map(op => (
+                <span key={op.id} style={{ marginRight: 8 }}>{op.name}</span>
+              ))}
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                      <Button onClick={() => { resetForm(); setTab(0); }}>Annuler</Button>
+              <Button variant="contained" onClick={handleSaveNewSystem} disabled={!newSysName.trim() || newSysOps.length === 0}>
+                Ajouter
+              </Button>
+            </Box>
+          </Box>
+        )}
+                {/* Onglets HISTORIQUE et AJOUTER UN ENREGISTREMENT */}
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          variant={isMobile ? 'scrollable' : 'standard'}
+          scrollButtons={isMobile ? 'auto' : false}
+          sx={{ minHeight: isMobile ? 36 : 48, mb: isMobile ? 1 : 2 }}
+        >
+          <Tab label={t.history} />
+          <Tab label={editingRecord ? t.edit : t.addRecord} />
+        </Tabs>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Typography color="error" align="center" sx={{ mt: 4 }}>{error}</Typography>
+        ) : (
+          <Box sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexDirection: 'column' }}>
+                      <Typography
+                        variant={isMobile ? 'h5' : 'h4'}
+                        sx={{
+                          fontWeight: 700,
+                          fontFamily: `'Montserrat', 'Roboto', 'Arial', sans-serif`,
+                          fontSize: isMobile ? '1.3rem' : '2rem',
+                          textAlign: 'center',
+                          letterSpacing: 1,
+                          color: '#222',
+                          mb: isMobile ? 1 : 2,
+                          width: '100%'
+                        }}
+                      >
+                        Plan du véhicule {selectedVehicle?.name || 'Non sélectionné'}
+                      </Typography>
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth={isMobile}
+                sx={{ my: isMobile ? 1 : 2, py: isMobile ? 1.2 : 1.5, fontSize: isMobile ? '1rem' : '1.1rem' }}
+                onClick={() => setSelectedConsistency('')}
+              >
+                {selectedConsistency || 'Choisir la consistance'}
+              </Button>
+            </Box>
+            {selectedConsistency ? (
+              <Typography variant="h6" sx={{ mb: 2 }}>Consistance actuelle : {selectedConsistency}</Typography>
+                    ) : null}
+            {tab === 0 && (
+              isMobile ? (
+                <Box sx={{ width: '100%', mb: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {filteredRecords.length === 0 ? (
+                    <Typography align="center" sx={{ color: '#888', fontSize: '1rem', mt: 2 }}>{t.noRecord}</Typography>
+                  ) : filteredRecords.map((record) => {
+                    const system = currentSystems.find(s => s.id === record.systemId);
+                    const operation = system?.operations.find(o => o.id === record.operationId);
+                    let color = '#f44336';
+                    if (record.status === 'en cours') color = '#ff9800';
+                    if (record.status === 'terminé') color = '#4caf50';
+                    return (
+                      <Paper key={record.id} sx={{ p: 2, borderRadius: 2, boxShadow: 1 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography sx={{ fontWeight: 600 }}>{system?.name || record.systemId}</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Tooltip title={t.edit}><IconButton size="small" onClick={() => handleEditRecord(record)}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                            <Tooltip title={t.delete}><IconButton size="small" color="error" onClick={() => setDeleteDialog({open: true, recordId: record.id})}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                          </Box>
+                        </Box>
+                        <Typography variant="body2" sx={{ mb: 0.5 }}><b>{t.operation} :</b> {operation?.name || record.operationId}</Typography>
+                        <Typography variant="body2" sx={{ mb: 0.5 }}><b>{t.date} :</b> {new Date(record.timestamp).toLocaleString()}</Typography>
+                        <Typography variant="body2" sx={{ mb: 0.5 }}><b>{t.comment} :</b> {record.comment}</Typography>
+                        <Typography variant="body2" sx={{ mb: 0.5 }}><b>Statut :</b> <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', background: color, border: '1px solid #bbb', verticalAlign: 'middle', marginRight: 4 }} />{record.status || 'non commencé'}</Typography>
+                        <Typography variant="body2"><b>{t.user} :</b> {record.user || 'Inconnu'}</Typography>
+                      </Paper>
+                    );
+                  })}
+                </Box>
+              ) : (
+                <Box sx={{ width: '100%', overflowX: 'visible', mb: 2 }}>
+                  <TableContainer component={Paper} sx={{ minWidth: 650 }}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>{t.system}</span>
+                              <IconButton size="small" onClick={(e) => handleSearchClick('system', e)}>
+                                <SearchIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            <SearchPopover column="system" title="Système" />
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>{t.operation}</span>
+                              <IconButton size="small" onClick={(e) => handleSearchClick('operation', e)}>
+                                <SearchIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            <SearchPopover column="operation" title="Opération" />
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>{t.date}</span>
+                              <IconButton size="small" onClick={(e) => handleSearchClick('date', e)}>
+                                <SearchIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            <SearchPopover column="date" title="Date" />
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>{t.comment}</span>
+                              <IconButton size="small" onClick={(e) => handleSearchClick('comment', e)}>
+                                <SearchIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            <SearchPopover column="comment" title="Commentaire" />
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>Statut de la fiche de traçabilité</span>
+                              <IconButton size="small" onClick={(e) => handleSearchClick('status', e)}>
+                                <SearchIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            <SearchPopover column="status" title="Statut" />
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>Utilisateur</span>
+                              <IconButton size="small" onClick={(e) => handleSearchClick('user', e)}>
+                                <SearchIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            <SearchPopover column="user" title="Utilisateur" />
+                          </TableCell>
+                          <TableCell align="right">{t.actions}</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
                         {filteredRecords.length === 0 ? (
-                          <Typography align="center" sx={{ color: '#888', fontSize: '1rem', mt: 2 }}>{t.noRecord}</Typography>
+                          <TableRow>
+                            <TableCell colSpan={7} align="center">{t.noRecord}</TableCell>
+                          </TableRow>
                         ) : filteredRecords.map((record) => {
                           const system = currentSystems.find(s => s.id === record.systemId);
                           const operation = system?.operations.find(o => o.id === record.operationId);
-                          let color = '#f44336';
-                          if (record.status === 'en cours') color = '#ff9800';
-                          if (record.status === 'terminé') color = '#4caf50';
+                          // Couleur du statut
+                          let color = '#f44336'; // rouge par défaut
+                          if (record.status === 'en cours') color = '#ff9800'; // orange
+                          if (record.status === 'terminé') color = '#4caf50'; // vert
                           return (
-                            <Paper key={record.id} sx={{ p: 2, borderRadius: 2, boxShadow: 1 }}>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                                <Typography sx={{ fontWeight: 600 }}>{system?.name || record.systemId}</Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Tooltip title={t.edit}><IconButton size="small" onClick={() => handleEditRecord(record)}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                                  <Tooltip title={t.delete}><IconButton size="small" color="error" onClick={() => setDeleteDialog({open: true, recordId: record.id})}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
-                                </Box>
-                              </Box>
-                              <Typography variant="body2" sx={{ mb: 0.5 }}><b>{t.operation} :</b> {operation?.name || record.operationId}</Typography>
-                              <Typography variant="body2" sx={{ mb: 0.5 }}><b>{t.date} :</b> {new Date(record.timestamp).toLocaleString()}</Typography>
-                              <Typography variant="body2" sx={{ mb: 0.5 }}><b>{t.comment} :</b> {record.comment}</Typography>
-                              <Typography variant="body2" sx={{ mb: 0.5 }}><b>Statut :</b> <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', background: color, border: '1px solid #bbb', verticalAlign: 'middle', marginRight: 4 }} />{record.status || 'non commencé'}</Typography>
-                              <Typography variant="body2"><b>{t.user} :</b> {record.user || 'Inconnu'}</Typography>
-                            </Paper>
+                            <TableRow key={record.id}>
+                              <TableCell>{system?.name || record.systemId}</TableCell>
+                              <TableCell>{operation?.name || record.operationId}</TableCell>
+                              <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
+                              <TableCell>{record.comment}</TableCell>
+                              <TableCell>
+                                <span style={{
+                                  display: 'inline-block',
+                                  width: 18,
+                                  height: 18,
+                                  borderRadius: '50%',
+                                  background: color,
+                                  border: '1px solid #bbb',
+                                  verticalAlign: 'middle',
+                                  marginRight: 6
+                                }} />
+                                <span style={{ fontSize: 13, color: '#444' }}>{record.status || 'non commencé'}</span>
+                              </TableCell>
+                              <TableCell>{record.user || 'Inconnu'}</TableCell>
+                              <TableCell align="right">
+                                <Tooltip title={t.edit}>
+                                  <IconButton onClick={() => handleEditRecord(record)}><EditIcon /></IconButton>
+                                </Tooltip>
+                                <Tooltip title={t.delete}>
+                                  <IconButton color="error" onClick={() => setDeleteDialog({open: true, recordId: record.id})}><DeleteIcon /></IconButton>
+                                </Tooltip>
+                              </TableCell>
+                            </TableRow>
                           );
                         })}
-                      </Box>
-                    ) : (
-                      <Box sx={{ width: '100%', overflowX: 'visible', mb: 2 }}>
-                        <TableContainer component={Paper} sx={{ minWidth: 650 }}>
-                          <Table>
-                            <TableHead>
-                              <TableRow>
-                                <TableCell>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span>{t.system}</span>
-                                    <IconButton size="small" onClick={(e) => handleSearchClick('system', e)}>
-                                      <SearchIcon fontSize="small" />
-                                    </IconButton>
-                                  </Box>
-                                  <SearchPopover column="system" title="Système" />
-                                </TableCell>
-                                <TableCell>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span>{t.operation}</span>
-                                    <IconButton size="small" onClick={(e) => handleSearchClick('operation', e)}>
-                                      <SearchIcon fontSize="small" />
-                                    </IconButton>
-                                  </Box>
-                                  <SearchPopover column="operation" title="Opération" />
-                                </TableCell>
-                                <TableCell>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span>{t.date}</span>
-                                    <IconButton size="small" onClick={(e) => handleSearchClick('date', e)}>
-                                      <SearchIcon fontSize="small" />
-                                    </IconButton>
-                                  </Box>
-                                  <SearchPopover column="date" title="Date" />
-                                </TableCell>
-                                <TableCell>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span>{t.comment}</span>
-                                    <IconButton size="small" onClick={(e) => handleSearchClick('comment', e)}>
-                                      <SearchIcon fontSize="small" />
-                                    </IconButton>
-                                  </Box>
-                                  <SearchPopover column="comment" title="Commentaire" />
-                                </TableCell>
-                                <TableCell>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span>Statut de la fiche de traçabilité</span>
-                                    <IconButton size="small" onClick={(e) => handleSearchClick('status', e)}>
-                                      <SearchIcon fontSize="small" />
-                                    </IconButton>
-                                  </Box>
-                                  <SearchPopover column="status" title="Statut" />
-                                </TableCell>
-                                <TableCell>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span>Utilisateur</span>
-                                    <IconButton size="small" onClick={(e) => handleSearchClick('user', e)}>
-                                      <SearchIcon fontSize="small" />
-                                    </IconButton>
-                                  </Box>
-                                  <SearchPopover column="user" title="Utilisateur" />
-                                </TableCell>
-                                <TableCell align="right">{t.actions}</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {filteredRecords.length === 0 ? (
-                                <TableRow>
-                                  <TableCell colSpan={7} align="center">{t.noRecord}</TableCell>
-                                </TableRow>
-                              ) : filteredRecords.map((record) => {
-                                const system = currentSystems.find(s => s.id === record.systemId);
-                                const operation = system?.operations.find(o => o.id === record.operationId);
-                                // Couleur du statut
-                                let color = '#f44336'; // rouge par défaut
-                                if (record.status === 'en cours') color = '#ff9800'; // orange
-                                if (record.status === 'terminé') color = '#4caf50'; // vert
-                                return (
-                                  <TableRow key={record.id}>
-                                    <TableCell>{system?.name || record.systemId}</TableCell>
-                                    <TableCell>{operation?.name || record.operationId}</TableCell>
-                                    <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
-                                    <TableCell>{record.comment}</TableCell>
-                                    <TableCell>
-                                      <span style={{
-                                        display: 'inline-block',
-                                        width: 18,
-                                        height: 18,
-                                        borderRadius: '50%',
-                                        background: color,
-                                        border: '1px solid #bbb',
-                                        verticalAlign: 'middle',
-                                        marginRight: 6
-                                      }} />
-                                      <span style={{ fontSize: 13, color: '#444' }}>{record.status || 'non commencé'}</span>
-                                    </TableCell>
-                                    <TableCell>{record.user || 'Inconnu'}</TableCell>
-                                    <TableCell align="right">
-                                      <Tooltip title={t.edit}>
-                                        <IconButton onClick={() => handleEditRecord(record)}><EditIcon /></IconButton>
-                                      </Tooltip>
-                                      <Tooltip title={t.delete}>
-                                        <IconButton color="error" onClick={() => setDeleteDialog({open: true, recordId: record.id})}><DeleteIcon /></IconButton>
-                                      </Tooltip>
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-                      </Box>
-                    )
-                  )}
-                  {tab === 1 && (
-                    <Box sx={{ maxWidth: 400, mx: 'auto', mt: 2 }}>
-                      <FormControl fullWidth sx={{ mt: 2 }}>
-                        <InputLabel id="system-select-label">{t.system}</InputLabel>
-                        <Select
-                          labelId="system-select-label"
-                          value={selectedSystem}
-                          onChange={(e) => { setSelectedSystem(e.target.value); setSelectedOperation(''); }}
-                          label={t.system}
-                        >
-                          {currentSystems.map((system) => (
-                            <MenuItem key={system.id} value={system.id}>{system.name}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      <FormControl fullWidth sx={{ mt: 2 }}>
-                        <InputLabel id="operation-select-label">{t.operation}</InputLabel>
-                        <Select
-                          labelId="operation-select-label"
-                          value={selectedOperation}
-                          onChange={(e) => setSelectedOperation(e.target.value)}
-                          label={t.operation}
-                          disabled={!selectedSystem}
-                        >
-                          {selectedSystem && currentSystems.find(s => s.id === selectedSystem)?.operations.map((operation) => (
-                            <MenuItem key={operation.id} value={operation.id}>{operation.name}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      <TextField
-                        fullWidth
-                        label={t.comment}
-                        multiline
-                        rows={3}
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        sx={{ mt: 2 }}
-                      />
-                      <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                        {selectedOperation && (() => {
-                          const selectedSys = currentSystems.find(s => s.id === selectedSystem);
-                          const selectedOp = selectedSys?.operations.find(o => o.id === selectedOperation);
-                          return selectedOp ? <>
-                            <Button
-                              variant="outlined"
-                              onClick={() => setShowPdf({operationId: selectedOperation, type: 'protocole', allowStatusChange: false})}
-                              disabled={
-                                selectedConsistency === 'IS710'
-                                  ? (!("protocolUrl" in selectedOp) || !selectedOp.protocolUrl) && !selectedOp.id
-                                  : !selectedOp.id
-                              }
-                            >
-                              Ouvrir le protocole SharePoint
-                            </Button>
-                            <Button
-                              variant="outlined"
-                              color="secondary"
-                              onClick={() => editingRecord && setShowPdf({operationId: editingRecord.operationId, type: 'tracabilite', allowStatusChange: true, recordId: editingRecord.id})}
-                              disabled={!editingRecord}
-                            >
-                              Ouvrir la fiche de traçabilité
-                            </Button>
-                          </> : null;
-                        })()}
-                      </Box>
-                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                        <Button onClick={() => { resetForm(); setTab(0); }}>{t.cancel}</Button>
-                        <Button variant="contained" onClick={handleAddOrEdit} disabled={!selectedSystem || !selectedOperation}>
-                          {editingRecord ? t.update : t.save}
-                        </Button>
-                      </Box>
-                    </Box>
-                  )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 </Box>
-              )}
-              <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({open: false, recordId: null})}>
-                <DialogTitle>{t.confirmDeleteTitle}</DialogTitle>
-                <DialogContent>
-                  <Typography>{t.confirmDeleteText}</Typography>
-                </DialogContent>
-                <DialogActions>
-                  <Button onClick={() => setDeleteDialog({open: false, recordId: null})}>{t.cancel}</Button>
-                  <Button color="error" onClick={() => deleteDialog.recordId && handleDeleteRecord(deleteDialog.recordId)}>{t.delete}</Button>
-                </DialogActions>
-              </Dialog>
-            </>
-          )}
+              )
+            )}
+            {tab === 1 && (
+              <Box sx={{ maxWidth: 400, mx: 'auto', mt: 2 }}>
+                <FormControl fullWidth sx={{ mt: 2 }}>
+                  <InputLabel id="system-select-label">{t.system}</InputLabel>
+                  <Select
+                    labelId="system-select-label"
+                    value={selectedSystem}
+                    onChange={(e) => { setSelectedSystem(e.target.value); setSelectedOperation(''); }}
+                    label={t.system}
+                  >
+                    {currentSystems.map((system) => (
+                      <MenuItem key={system.id} value={system.id}>{system.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth sx={{ mt: 2 }}>
+                  <InputLabel id="operation-select-label">{t.operation}</InputLabel>
+                  <Select
+                    labelId="operation-select-label"
+                    value={selectedOperation}
+                    onChange={(e) => setSelectedOperation(e.target.value)}
+                    label={t.operation}
+                    disabled={!selectedSystem}
+                  >
+                    {selectedSystem && currentSystems.find(s => s.id === selectedSystem)?.operations.map((operation) => (
+                      <MenuItem key={operation.id} value={operation.id}>{operation.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <TextField
+                  fullWidth
+                  label={t.comment}
+                  multiline
+                  rows={3}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  sx={{ mt: 2 }}
+                />
+                <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                  {selectedOperation && (() => {
+                    const selectedSys = currentSystems.find(s => s.id === selectedSystem);
+                    const selectedOp = selectedSys?.operations.find(o => o.id === selectedOperation);
+                    return selectedOp ? <>
+                      <Button
+                        variant="outlined"
+                                onClick={() => setShowPdf({operationId: selectedOperation, type: 'protocole', allowStatusChange: false})}
+                        disabled={
+                          selectedConsistency === 'IS710'
+                            ? (!("protocolUrl" in selectedOp) || !selectedOp.protocolUrl) && !selectedOp.id
+                            : !selectedOp.id
+                        }
+                      >
+                        Ouvrir le protocole SharePoint
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="secondary"
+                                onClick={() => editingRecord && setShowPdf({operationId: editingRecord.operationId, type: 'tracabilite', allowStatusChange: true, recordId: editingRecord.id})}
+                                disabled={!editingRecord}
+                      >
+                        Ouvrir la fiche de traçabilité
+                      </Button>
+                    </> : null;
+                  })()}
+                </Box>
+                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <Button onClick={() => { resetForm(); setTab(0); }}>{t.cancel}</Button>
+                  <Button variant="contained" onClick={handleAddOrEdit} disabled={!selectedSystem || !selectedOperation}>
+                    {editingRecord ? t.update : t.save}
+                  </Button>
+                </Box>
+              </Box>
+            )}
+          </Box>
+        )}
+        <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({open: false, recordId: null})}>
+          <DialogTitle>{t.confirmDeleteTitle}</DialogTitle>
+          <DialogContent>
+            <Typography>{t.confirmDeleteText}</Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteDialog({open: false, recordId: null})}>{t.cancel}</Button>
+            <Button color="error" onClick={() => deleteDialog.recordId && handleDeleteRecord(deleteDialog.recordId)}>{t.delete}</Button>
+          </DialogActions>
+        </Dialog>
+              </>
+            )}
+          </Box>
         </Box>
       </Box>
     </LocalizationProvider>
