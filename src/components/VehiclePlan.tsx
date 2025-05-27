@@ -497,6 +497,89 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   const t = translations[lang];
   const isMobile = useMediaQuery('(max-width:600px)');
 
+  // Gestion des événements tactiles (swipe horizontal + pull-to-refresh)
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [pullDistance, setPullDistance] = useState(0);
+  const MIN_PULL_DISTANCE = 60; // px
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const lastRefreshTime = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0];
+    setTouchStartY(touch.clientY);
+    setTouchStartX(touch.clientX);
+    setPullDistance(0);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartY !== null && touchStartX !== null) {
+      const touch = e.touches[0];
+      const deltaY = touch.clientY - touchStartY;
+      setPullDistance(deltaY > 0 ? deltaY : 0);
+    }
+  };
+
+  const handleTouchEnd = async (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartY !== null && touchStartX !== null) {
+      const touch = e.changedTouches[0];
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+
+      // Gestion du swipe horizontal
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+        if (selectedVehicle && selectedConsistency) {
+          const currentIndex = VEHICLES.findIndex(v => v.id === selectedVehicle.id);
+          if (deltaX > 0 && currentIndex > 0) {
+            // Swipe droite -> véhicule précédent
+            setSelectedVehicle(VEHICLES[currentIndex - 1]);
+          } else if (deltaX < 0 && currentIndex < VEHICLES.length - 1) {
+            // Swipe gauche -> véhicule suivant
+            setSelectedVehicle(VEHICLES[currentIndex + 1]);
+          }
+        }
+      }
+      // Gestion du pull-to-refresh
+      else if (
+        pullDistance > MIN_PULL_DISTANCE &&
+        !isRefreshing &&
+        (Date.now() - lastRefreshTime.current > 5000) &&
+        e.currentTarget.scrollTop === 0
+      ) {
+        setIsRefreshing(true);
+        try {
+          await refreshAllRecords();
+          lastRefreshTime.current = Date.now();
+        } catch (error) {
+          console.error('Erreur lors du rafraîchissement:', error);
+        } finally {
+          setIsRefreshing(false);
+        }
+      }
+    }
+    setTouchStartY(null);
+    setTouchStartX(null);
+    setPullDistance(0);
+  };
+
+  const handleScroll = async (e: React.UIEvent<HTMLDivElement>) => {
+    const element = e.currentTarget;
+    const now = Date.now();
+    
+    // Vérifier si on est en haut de page et si le dernier rafraîchissement date de plus de 5 secondes
+    if (element.scrollTop === 0 && !isRefreshing && (now - lastRefreshTime.current > 5000)) {
+      setIsRefreshing(true);
+      try {
+        await refreshAllRecords();
+        lastRefreshTime.current = now;
+      } catch (error) {
+        console.error('Erreur lors du rafraîchissement:', error);
+      } finally {
+        setIsRefreshing(false);
+      }
+    }
+  };
+
   const maintenanceService = MaintenanceService.getInstance();
   const userName = accounts && accounts[0] ? (accounts[0].name || accounts[0].username) : 'Inconnu';
 
@@ -570,43 +653,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       });
       maintenanceService.setAccessToken(response.accessToken);
       let records = await maintenanceService.getMaintenanceRecords(consistency, vehicleId);
-
-      // Synchronisation du statut avec la colonne Excel (désactivée pour persistance JSON)
-      // for (let i = 0; i < records.length; i++) {
-      //   const record = records[i];
-      //   const opCode = record.operationId;
-      //   const folderPath = '/AFF-Projets/Le Grand Tour/Etude Maintenance/40.DOCUMENTATION/ESSAI OUTILS';
-      //   const filesRes = await fetch(
-      //     `https://graph.microsoft.com/v1.0/sites/arlingtonfleetfrance.sharepoint.com,3d42766f-7bce-4b8e-92e0-70272ae2b95e,cfa621f3-5013-433c-9d14-3c519f11bb8d/drive/root:${folderPath}:/children`,
-      //     { headers: { Authorization: `Bearer ${response.accessToken}` } }
-      //   );
-      //   const filesData = await filesRes.json();
-      //   let file = (filesData.value as any[]).find((f: any) => f.name === `FT-LGT-${opCode}.xlsx`);
-      //   if (!file) {
-      //     file = (filesData.value as any[]).find((f: any) => f.name.includes(opCode) && f.name.endsWith('.xlsx'));
-      //   }
-      //   if (file && file['@microsoft.graph.downloadUrl']) {
-      //     try {
-      //       const excelBlob = await fetch(file['@microsoft.graph.downloadUrl']);
-      //       const arrayBuffer = await excelBlob.arrayBuffer();
-      //       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-      //       const firstSheetName = workbook.SheetNames[0];
-      //       const worksheet = workbook.Sheets[firstSheetName];
-      //       const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as (string | undefined)[][];
-      //       const headerRow = excelData[0] as string[];
-      //       const statusColIndex = headerRow.findIndex((col) => col && col.toLowerCase().includes('statut'));
-      //       let statusValue: 'non commencé' | 'en cours' | 'terminé' = 'non commencé';
-      //       if (statusColIndex !== -1 && excelData[1] && typeof excelData[1][statusColIndex] === 'string') {
-      //         const cellValue = (excelData[1][statusColIndex] as string).toLowerCase();
-      //         if (cellValue.includes('en cours')) statusValue = 'en cours';
-      //         else if (cellValue.includes('terminé')) statusValue = 'terminé';
-      //       }
-      //       records[i].status = statusValue;
-      //     } catch (e) {
-      //       // Si erreur de lecture Excel, on laisse le statut existant
-      //     }
-      //   }
-      // }
       setRecordsByConsistency(prev => ({
         ...prev,
         [consistency]: {
@@ -744,62 +790,62 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
 
   const SearchPopover = ({ column, title }: { column: string, title: string }) => {
     return (
-      <Popover
-        open={Boolean(anchorEl[column])}
-        anchorEl={anchorEl[column]}
-        onClose={() => handleSearchClose(column)}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'left',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'left',
-        }}
-      >
-        <Box sx={{ p: 2 }}>
-          {column === 'status' ? (
-            <Select
-              size="small"
-              value={filters.status}
-              onChange={(e) => setFilters({...filters, status: e.target.value})}
-              fullWidth
-              displayEmpty
-              autoFocus
-            >
-              <MenuItem value="">Tous les statuts</MenuItem>
-              <MenuItem value="non commencé">Non commencé</MenuItem>
-              <MenuItem value="en cours">En cours</MenuItem>
-              <MenuItem value="terminé">Terminé</MenuItem>
-            </Select>
-          ) : column === 'date' ? (
-            <DatePicker
-              value={dateFilter}
-              onChange={(newValue: Date | null) => {
-                setDateFilter(newValue);
-                setFilters({...filters, date: newValue ? newValue.toLocaleDateString() : ''});
-              }}
-              slotProps={{
-                textField: {
-                  size: "small",
-                  fullWidth: true,
-                  autoFocus: true
-                }
-              }}
-            />
-          ) : (
-            <TextField
-              size="small"
-              placeholder={`Rechercher dans ${title}...`}
-              value={filters[column as keyof typeof filters]}
-              onChange={(e) => setFilters({...filters, [column]: e.target.value})}
-              fullWidth
-              autoFocus
-            />
-          )}
-        </Box>
-      </Popover>
-    );
+    <Popover
+      open={Boolean(anchorEl[column])}
+      anchorEl={anchorEl[column]}
+      onClose={() => handleSearchClose(column)}
+      anchorOrigin={{
+        vertical: 'bottom',
+        horizontal: 'left',
+      }}
+      transformOrigin={{
+        vertical: 'top',
+        horizontal: 'left',
+      }}
+    >
+      <Box sx={{ p: 2 }}>
+        {column === 'status' ? (
+          <Select
+            size="small"
+            value={filters.status}
+            onChange={(e) => setFilters({...filters, status: e.target.value})}
+            fullWidth
+            displayEmpty
+            autoFocus
+          >
+            <MenuItem value="">Tous les statuts</MenuItem>
+            <MenuItem value="non commencé">Non commencé</MenuItem>
+            <MenuItem value="en cours">En cours</MenuItem>
+            <MenuItem value="terminé">Terminé</MenuItem>
+          </Select>
+        ) : column === 'date' ? (
+          <DatePicker
+            value={dateFilter}
+            onChange={(newValue: Date | null) => {
+              setDateFilter(newValue);
+              setFilters({...filters, date: newValue ? newValue.toLocaleDateString() : ''});
+            }}
+            slotProps={{
+              textField: {
+                size: "small",
+                fullWidth: true,
+                autoFocus: true
+              }
+            }}
+          />
+        ) : (
+          <TextField
+            size="small"
+            placeholder={`Rechercher dans ${title}...`}
+            value={filters[column as keyof typeof filters]}
+            onChange={(e) => setFilters({...filters, [column]: e.target.value})}
+            fullWidth
+            autoFocus
+          />
+        )}
+      </Box>
+    </Popover>
+  );
   };
 
   const filteredRecords = currentRecords.filter(record => {
@@ -976,28 +1022,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Se déclenche une seule fois au chargement initial
 
-  // Gestion du pull-to-refresh
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const lastRefreshTime = useRef<number>(0);
-
-  const handleScroll = async (e: React.UIEvent<HTMLDivElement>) => {
-    const element = e.currentTarget;
-    const now = Date.now();
-    
-    // Vérifier si on est en haut de page et si le dernier rafraîchissement date de plus de 5 secondes
-    if (element.scrollTop === 0 && !isRefreshing && (now - lastRefreshTime.current > 5000)) {
-      setIsRefreshing(true);
-      try {
-        await refreshAllRecords();
-        lastRefreshTime.current = now;
-      } catch (error) {
-        console.error('Erreur lors du rafraîchissement:', error);
-      } finally {
-        setIsRefreshing(false);
-      }
-    }
-  };
-
   // Fonction utilitaire pour comparer deux tableaux d'objets (par JSON.stringify)
   function arraysEqual(a: any[], b: any[]) {
     return JSON.stringify(a) === JSON.stringify(b);
@@ -1049,40 +1073,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     }
   };
 
-  // Gestion du swipe avec des événements tactiles natifs
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    const touch = e.touches[0];
-    const startX = touch.clientX;
-    const startY = touch.clientY;
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      const touch = e.changedTouches[0];
-      const endX = touch.clientX;
-      const endY = touch.clientY;
-      
-      const deltaX = endX - startX;
-      const deltaY = endY - startY;
-
-      // Si le swipe horizontal est plus important que le vertical
-      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
-        if (selectedVehicle && selectedConsistency) {
-          const currentIndex = VEHICLES.findIndex(v => v.id === selectedVehicle.id);
-          if (deltaX > 0 && currentIndex > 0) {
-            // Swipe droite -> véhicule précédent
-            setSelectedVehicle(VEHICLES[currentIndex - 1]);
-          } else if (deltaX < 0 && currentIndex < VEHICLES.length - 1) {
-            // Swipe gauche -> véhicule suivant
-            setSelectedVehicle(VEHICLES[currentIndex + 1]);
-          }
-        }
-      }
-      
-      document.removeEventListener('touchend', handleTouchEnd);
-    };
-
-    document.addEventListener('touchend', handleTouchEnd);
-  };
-
   // Affichage de la modale PDF (protocole ou traçabilité) si demandée
   if (showPdf.operationId && showPdf.type) {
     const record = recordsByConsistency[selectedConsistency]?.[selectedVehicle?.id || 0]?.find(r => r.id === showPdf.recordId);
@@ -1131,6 +1121,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
       <Box 
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onScroll={handleScroll}
         sx={{ 
           height: '100vh',
