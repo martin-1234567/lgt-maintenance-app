@@ -1109,18 +1109,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           position: 'relative'
         }}
       >
-        {/* Bouton retour toujours visible en haut à gauche */}
-        <Box sx={{
-          position: { xs: 'fixed', sm: 'sticky' },
-          top: { xs: 56, sm: 0 }, // 56px pour laisser la place à la barre d'appli sur mobile
-          left: 0,
-          zIndex: 1200,
-          background: { xs: 'rgba(255,255,255,0.95)', sm: 'transparent' },
-          px: 2,
-          py: 1,
-          boxShadow: { xs: 1, sm: 0 },
-          width: 'fit-content'
-        }}>
+        {/* Bouton retour en haut à gauche, dans le flux normal */}
+        <Box sx={{ mt: 2, ml: 2 }}>
           <Button variant="outlined" onClick={handleBack} sx={{ fontWeight: 600, fontSize: { xs: '1.1rem', sm: '1rem' } }}>
             ← Retour
           </Button>
