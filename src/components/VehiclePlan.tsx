@@ -25,7 +25,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Popover
+  Popover,
+  Divider
 } from '@mui/material';
 import { Vehicle, System, MaintenanceRecord } from '../types/index';
 import EditIcon from '@mui/icons-material/Edit';
@@ -1133,19 +1134,10 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           touchAction: 'pan-y',
           position: 'relative',
           marginTop: isMobile ? '56px' : '100px',
+          background: '#f7f7f7'
         }}
       >
-        {/* Séparateur visuel sous l'en-tête */}
-        <Box sx={{
-          width: '100%',
-          height: '0',
-          borderBottom: '2px solid #e0e0e0',
-          boxShadow: '0 2px 8px -2px #0002',
-          position: 'absolute',
-          top: isMobile ? '-56px' : '-100px',
-          left: 0,
-          zIndex: 1100
-        }} />
+        <Divider sx={{ mb: 2, borderBottomWidth: 2 }} />
         {isRefreshing && (
           <Box sx={{
             position: 'fixed',
