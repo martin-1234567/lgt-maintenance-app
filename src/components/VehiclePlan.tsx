@@ -1396,8 +1396,34 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             </Box>
           </Box>
         )}
-        {/* Onglets HISTORIQUE et AJOUTER UN ENREGISTREMENT */}
-        <Paper elevation={2} sx={{ mb: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
+          <Typography
+            variant={isMobile ? 'h5' : 'h4'}
+            sx={{
+              fontWeight: 700,
+              fontFamily: `'Montserrat', 'Roboto', 'Arial', sans-serif`,
+              fontSize: isMobile ? '1.3rem' : '2rem',
+              textAlign: 'center',
+              letterSpacing: 1,
+              color: '#222',
+              mb: isMobile ? 1 : 2,
+              width: '100%'
+            }}
+          >
+            Plan du véhicule {selectedVehicle?.name || 'Non sélectionné'}
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            fullWidth={isMobile}
+            sx={{ my: isMobile ? 1 : 2, py: isMobile ? 1.2 : 1.5, fontSize: isMobile ? '1rem' : '1.1rem' }}
+            onClick={() => setSelectedConsistency('')}
+          >
+            {selectedConsistency || 'Choisir la consistance'}
+          </Button>
+        </Box>
+        {/* Onglets HISTORIQUE et AJOUTER UN ENREGISTREMENT placés ici */}
+        <Paper elevation={2} sx={{ mb: 2, maxWidth: 900, mx: 'auto' }}>
           <Tabs
             value={tab}
             onChange={(_, v) => setTab(v)}
@@ -1417,32 +1443,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           <Typography color="error" align="center" sx={{ mt: 4 }}>{error}</Typography>
         ) : (
           <Box sx={{ p: 3 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexDirection: 'column' }}>
-                      <Typography
-                        variant={isMobile ? 'h5' : 'h4'}
-                        sx={{
-                          fontWeight: 700,
-                          fontFamily: `'Montserrat', 'Roboto', 'Arial', sans-serif`,
-                          fontSize: isMobile ? '1.3rem' : '2rem',
-                          textAlign: 'center',
-                          letterSpacing: 1,
-                          color: '#222',
-                          mb: isMobile ? 1 : 2,
-                          width: '100%'
-                        }}
-                      >
-                        Plan du véhicule {selectedVehicle?.name || 'Non sélectionné'}
-                      </Typography>
-              <Button
-                variant="contained"
-                color="primary"
-                fullWidth={isMobile}
-                sx={{ my: isMobile ? 1 : 2, py: isMobile ? 1.2 : 1.5, fontSize: isMobile ? '1rem' : '1.1rem' }}
-                onClick={() => setSelectedConsistency('')}
-              >
-                {selectedConsistency || 'Choisir la consistance'}
-              </Button>
-            </Box>
             {selectedConsistency ? (
               <Typography variant="h6" sx={{ mb: 2 }}>Consistance actuelle : {selectedConsistency}</Typography>
                     ) : null}
