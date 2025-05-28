@@ -1131,7 +1131,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           overflow: 'auto',
           WebkitOverflowScrolling: 'touch',
           touchAction: 'pan-y',
-          position: 'relative'
+          position: 'relative',
+          marginTop: isMobile ? '56px' : '100px',
         }}
       >
         {isRefreshing && (
