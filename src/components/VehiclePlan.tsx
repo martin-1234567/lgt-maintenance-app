@@ -1335,9 +1335,19 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             {/* Sinon, vue détaillée véhicule/consistance comme actuellement */}
             { selectedConsistency && selectedVehicle && (
               <>
-        <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 2, mb: 2, ml: isMobile ? 0 : 8 }}>
-          <Typography variant="h6" sx={{ fontSize: isMobile ? '1rem' : undefined }}>Consistance : {selectedConsistency}</Typography>
-          <FormControl sx={{ minWidth: 220 }} fullWidth={isMobile}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, ml: isMobile ? 0 : 8 }}>
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={() => setSelectedConsistency('')}
+            sx={{ minWidth: 90 }}
+          >
+            Retour
+          </Button>
+          <Typography variant="h6" sx={{ fontSize: isMobile ? '1rem' : undefined, ml: 2 }}>
+            Consistance : {selectedConsistency}
+          </Typography>
+          <FormControl sx={{ minWidth: 220, ml: 2 }} fullWidth={isMobile}>
             <InputLabel id="vehicle-select-label-main">Véhicule</InputLabel>
             <Select
               labelId="vehicle-select-label-main"
@@ -1354,48 +1364,14 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             </Select>
           </FormControl>
           {selectedConsistency !== 'IS710' && (
-            <IconButton color="error" onClick={() => handleDeleteConsistency(selectedConsistency)} sx={{ alignSelf: isMobile ? 'flex-end' : 'center' }}>
+            <IconButton color="error" onClick={() => handleDeleteConsistency(selectedConsistency)} sx={{ ml: 1 }}>
               <DeleteIcon />
             </IconButton>
           )}
-          <Button variant="outlined" sx={{ mt: isMobile ? 1 : 0 }} fullWidth={isMobile} onClick={() => setShowAddSystemForm(v => !v)}>
+          <Button variant="outlined" sx={{ ml: 2 }} onClick={() => setShowAddSystemForm(v => !v)}>
             Ajouter un système
           </Button>
         </Box>
-        {showAddSystemForm && (
-          <Box sx={{ maxWidth: 400, mx: 'auto', mb: 3, p: 2, border: '1px solid #ccc', borderRadius: 2 }}>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>Ajouter un système</Typography>
-            <TextField
-              label="Nom du système"
-              value={newSysName}
-              onChange={e => setNewSysName(e.target.value)}
-              fullWidth
-              sx={{ mb: 2 }}
-            />
-            <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-              <TextField
-                label="Nom de l'opération"
-                value={newOpName}
-                onChange={e => setNewOpName(e.target.value)}
-                fullWidth
-              />
-              <Button variant="outlined" onClick={handleAddSysOp} disabled={!newOpName.trim()}>
-                Ajouter opération
-              </Button>
-            </Box>
-            <Box sx={{ mb: 2 }}>
-              {newSysOps.map(op => (
-                <span key={op.id} style={{ marginRight: 8 }}>{op.name}</span>
-              ))}
-            </Box>
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                      <Button onClick={() => { resetForm(); setTab(0); }}>Annuler</Button>
-              <Button variant="contained" onClick={handleSaveNewSystem} disabled={!newSysName.trim() || newSysOps.length === 0}>
-                Ajouter
-              </Button>
-            </Box>
-          </Box>
-        )}
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
           <Typography
             variant={isMobile ? 'h5' : 'h4'}
