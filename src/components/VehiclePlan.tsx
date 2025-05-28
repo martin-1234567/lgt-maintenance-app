@@ -1396,17 +1396,19 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             </Box>
           </Box>
         )}
-                {/* Onglets HISTORIQUE et AJOUTER UN ENREGISTREMENT */}
-        <Tabs
-          value={tab}
-          onChange={(_, v) => setTab(v)}
-          variant={isMobile ? 'scrollable' : 'standard'}
-          scrollButtons={isMobile ? 'auto' : false}
-          sx={{ minHeight: isMobile ? 36 : 48, mb: isMobile ? 1 : 2 }}
-        >
-          <Tab label={t.history} />
-          <Tab label={editingRecord ? t.edit : t.addRecord} />
-        </Tabs>
+        {/* Onglets HISTORIQUE et AJOUTER UN ENREGISTREMENT */}
+        <Paper elevation={2} sx={{ mb: 2 }}>
+          <Tabs
+            value={tab}
+            onChange={(_, v) => setTab(v)}
+            variant={isMobile ? 'scrollable' : 'standard'}
+            scrollButtons={isMobile ? 'auto' : false}
+            sx={{ minHeight: isMobile ? 36 : 48 }}
+          >
+            <Tab label={t.history} />
+            <Tab label={editingRecord ? t.edit : t.addRecord} />
+          </Tabs>
+        </Paper>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
             <CircularProgress />
