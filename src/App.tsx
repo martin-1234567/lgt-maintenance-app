@@ -364,6 +364,8 @@ function App() {
         width: '100%',
         background: headerBg,
         borderBottom: '1px solid #e0e0e0',
+        borderLeft: 'none',
+        borderTop: 'none',
         display: 'flex',
         alignItems: 'center',
         zIndex: 1000,
