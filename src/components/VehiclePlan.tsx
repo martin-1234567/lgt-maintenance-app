@@ -869,6 +869,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   const handleSelectConsistency = (cons: string) => {
     setSelectedConsistency(cons);
     setSelectedVehicle(null);
+    // Nettoyage du localStorage pour éviter la restauration automatique
+    localStorage.removeItem('selectedVehicle');
     setRecordsByConsistency(prev => {
       if (prev[cons]) return prev;
       const vehObj: { [vehicleId: number]: MaintenanceRecord[] } = {};
