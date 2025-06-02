@@ -1345,13 +1345,17 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             color="primary"
             onClick={() => setSelectedConsistency('')}
             sx={{ minWidth: 90 }}
+            size="small"
           >
             Retour
           </Button>
-          <Typography variant="h6" sx={{ fontSize: isMobile ? '1rem' : undefined, ml: 2 }}>
+          <Typography
+            variant="h6"
+            sx={{ fontSize: isMobile ? '1rem' : '1.15rem', ml: 2, minWidth: 180 }}
+          >
             Consistance : {selectedConsistency}
           </Typography>
-          <FormControl sx={{ minWidth: 220, ml: 2 }} fullWidth={isMobile}>
+          <FormControl sx={{ minWidth: 180, ml: 2 }} size="small" fullWidth={isMobile}>
             <InputLabel id="vehicle-select-label-main">Véhicule</InputLabel>
             <Select
               labelId="vehicle-select-label-main"
@@ -1361,6 +1365,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                 const veh = VEHICLES.find((v) => v.id === Number(e.target.value));
                 if (veh) setSelectedVehicle(veh);
               }}
+              size="small"
             >
               {VEHICLES.map((veh) => (
                 <MenuItem key={veh.id} value={String(veh.id)}>{veh.name}</MenuItem>
@@ -1368,11 +1373,11 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             </Select>
           </FormControl>
           {selectedConsistency !== 'IS710' && (
-            <IconButton color="error" onClick={() => handleDeleteConsistency(selectedConsistency)} sx={{ ml: 1 }}>
+            <IconButton color="error" onClick={() => handleDeleteConsistency(selectedConsistency)} sx={{ ml: 1 }} size="small">
               <DeleteIcon />
             </IconButton>
           )}
-          <Button variant="outlined" sx={{ ml: 2 }} onClick={() => setShowAddSystemForm(v => !v)}>
+          <Button variant="outlined" sx={{ ml: 2 }} onClick={() => setShowAddSystemForm(v => !v)} size="small">
             Ajouter un système
           </Button>
         </Box>
