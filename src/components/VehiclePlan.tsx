@@ -498,11 +498,9 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   const t = translations[lang];
   const isMobile = useMediaQuery('(max-width:600px)');
 
-  // Gestion des événements tactiles (swipe horizontal + pull-to-refresh)
+  // Gestion des événements tactiles (swipe horizontal)
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [pullDistance, setPullDistance] = useState(0);
-  const MIN_PULL_DISTANCE = 60; // px
   const [isRefreshing, setIsRefreshing] = useState(false);
   const lastRefreshTime = useRef<number>(0);
 
@@ -510,15 +508,10 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     const touch = e.touches[0];
     setTouchStartY(touch.clientY);
     setTouchStartX(touch.clientX);
-    setPullDistance(0);
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (touchStartY !== null && touchStartX !== null) {
-      const touch = e.touches[0];
-      const deltaY = touch.clientY - touchStartY;
-      setPullDistance(deltaY > 0 ? deltaY : 0);
-    }
+    // On ne gère plus le pull-to-refresh, donc rien ici
   };
 
   const handleTouchEnd = async (e: React.TouchEvent<HTMLDivElement>) => {
@@ -527,7 +520,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       const deltaX = touch.clientX - touchStartX;
       const deltaY = touch.clientY - touchStartY;
 
-      // Gestion du swipe horizontal
+      // Gestion du swipe horizontal uniquement
       if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
         if (selectedVehicle && selectedConsistency) {
           const currentIndex = VEHICLES.findIndex(v => v.id === selectedVehicle.id);
@@ -540,27 +533,10 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           }
         }
       }
-      // Gestion du pull-to-refresh
-      else if (
-        pullDistance > MIN_PULL_DISTANCE &&
-        !isRefreshing &&
-        (Date.now() - lastRefreshTime.current > 5000) &&
-        e.currentTarget.scrollTop === 0
-      ) {
-        setIsRefreshing(true);
-        try {
-          await refreshAllRecords();
-          lastRefreshTime.current = Date.now();
-        } catch (error) {
-          console.error('Erreur lors du rafraîchissement:', error);
-        } finally {
-          setIsRefreshing(false);
-        }
-      }
+      // Plus de gestion du pull-to-refresh
     }
     setTouchStartY(null);
     setTouchStartX(null);
-    setPullDistance(0);
   };
 
   const handleScroll = async (e: React.UIEvent<HTMLDivElement>) => {
