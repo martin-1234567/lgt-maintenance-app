@@ -501,8 +501,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   // Gestion des événements tactiles (swipe horizontal)
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const lastRefreshTime = useRef<number>(0);
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     const touch = e.touches[0];
@@ -533,28 +531,9 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           }
         }
       }
-      // Plus de gestion du pull-to-refresh
     }
     setTouchStartY(null);
     setTouchStartX(null);
-  };
-
-  const handleScroll = async (e: React.UIEvent<HTMLDivElement>) => {
-    const element = e.currentTarget;
-    const now = Date.now();
-    
-    // Vérifier si on est en haut de page et si le dernier rafraîchissement date de plus de 5 secondes
-    if (element.scrollTop === 0 && !isRefreshing && (now - lastRefreshTime.current > 5000)) {
-      setIsRefreshing(true);
-      try {
-        await refreshAllRecords();
-        lastRefreshTime.current = now;
-      } catch (error) {
-        console.error('Erreur lors du rafraîchissement:', error);
-      } finally {
-        setIsRefreshing(false);
-      }
-    }
   };
 
   const maintenanceService = MaintenanceService.getInstance();
@@ -1009,11 +988,10 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   // Nouvelle version de refreshAllRecords
   const refreshAllRecords = async () => {
     if (!accounts || accounts.length === 0) return;
-    setIsRefreshing(true);
     let timeoutId: NodeJS.Timeout | null = null;
     try {
       // Timeout de sécurité : arrête le refresh au bout de 10 secondes quoi qu'il arrive
-      timeoutId = setTimeout(() => setIsRefreshing(false), 10000);
+      timeoutId = setTimeout(() => {}, 10000);
       const response = await instance.acquireTokenSilent({
         scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
         account: accounts[0],
@@ -1047,7 +1025,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       console.error('Erreur lors du rafraîchissement des enregistrements:', err);
       setError('Erreur lors du rafraîchissement des enregistrements');
     } finally {
-      setIsRefreshing(false);
       if (timeoutId) clearTimeout(timeoutId);
     }
   };
@@ -1113,21 +1090,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         }}
       >
         <Divider sx={{ mb: 2, borderBottomWidth: 2 }} />
-        {isRefreshing && (
-          <Box sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            padding: '10px',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            zIndex: 1000
-          }}>
-            <CircularProgress size={24} />
-          </Box>
-        )}
         <Box sx={{ 
           minHeight: '100vh',
           overflowX: 'hidden'
