@@ -1557,6 +1557,18 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                                 <Tooltip title={t.delete}>
                                   <IconButton color="error" onClick={() => setDeleteDialog({open: true, recordId: record.id})}><DeleteIcon /></IconButton>
                                 </Tooltip>
+                                {/* Bouton pour ouvrir la fiche de traçabilité de cet enregistrement */}
+                                <Tooltip title="Ouvrir la fiche de traçabilité">
+                                  <IconButton color="secondary" onClick={() => setShowPdf({operationId: record.operationId, type: 'tracabilite', allowStatusChange: true, recordId: record.id})}>
+                                    <span style={{fontWeight: 'bold', color: '#9c27b0'}}>FT</span>
+                                  </IconButton>
+                                </Tooltip>
+                                {/* Bouton pour ouvrir le protocole de cet enregistrement (optionnel) */}
+                                <Tooltip title="Ouvrir le protocole SharePoint">
+                                  <IconButton color="primary" onClick={() => setShowPdf({operationId: record.operationId, type: 'protocole', allowStatusChange: false, recordId: record.id})}>
+                                    <span style={{fontWeight: 'bold', color: '#1976d2'}}>P</span>
+                                  </IconButton>
+                                </Tooltip>
                               </TableCell>
                             </TableRow>
                           );
