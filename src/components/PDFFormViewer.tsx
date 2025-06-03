@@ -17,6 +17,7 @@ interface PDFFormViewerProps {
   saving: boolean;
   onBack: () => void;
   accessToken?: string;
+  type: string;
 }
 
 interface FormField {
@@ -32,7 +33,8 @@ const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
   onStatusChange,
   saving,
   onBack,
-  accessToken
+  accessToken,
+  type
 }) => {
   const [pdfData, setPdfData] = useState<string | null>(null);
   const [formFields, setFormFields] = useState<FormField[]>([]);
@@ -157,6 +159,44 @@ const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
       <Box>
         <Typography color="error">Impossible de charger le PDF ou le PDF ne contient pas de champs de formulaire éditables.</Typography>
         <Button onClick={onBack}>Retour</Button>
+      </Box>
+    );
+  }
+
+  if (type === 'tracabilite') {
+    return (
+      <Box>
+        <iframe
+          src={url}
+          title="Fiche de traçabilité"
+          width="100%"
+          height="800px"
+          style={{ border: 'none' }}
+        />
+        <Box display="flex" gap={2} justifyContent="flex-end" mt={2}>
+          <Button variant="outlined" onClick={onBack} disabled={saving}>Retour</Button>
+          <Button
+            variant="contained"
+            component="label"
+            color="primary"
+            disabled={saving}
+          >
+            Uploader le PDF modifié
+            <input
+              type="file"
+              accept="application/pdf"
+              hidden
+              onChange={async (e) => {
+                if (e.target.files && e.target.files[0]) {
+                  const file = e.target.files[0];
+                  const arrayBuffer = await file.arrayBuffer();
+                  await onSave(new Uint8Array(arrayBuffer), status);
+                  alert('PDF modifié sauvegardé sur SharePoint !');
+                }
+              }}
+            />
+          </Button>
+        </Box>
       </Box>
     );
   }

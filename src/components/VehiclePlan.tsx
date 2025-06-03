@@ -288,7 +288,8 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
                 }
               }}
               onBack={onBack}
-              accessToken={accessToken || undefined} // Passe le token ici
+              accessToken={accessToken || undefined}
+              type={type}
             />
           ) : (
             <Box sx={{ color: 'red', fontWeight: 'bold', fontSize: '1.1rem', mt: 10, textAlign: 'center' }}>
