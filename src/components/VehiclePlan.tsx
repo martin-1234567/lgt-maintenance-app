@@ -1112,54 +1112,54 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
 
     // --- OUVERTURE FICHE DE TRAÇABILITÉ ---
     if (showPdf.type === 'tracabilite') {
-      // 1. Si la copie existe (pdfUrl), on l'ouvre
+      // 1. Si la copie existe (pdfUrl), on l'ouvre dans un iframe
       if (record?.pdfUrl) {
         return (
-          <ViewerModal
-            url={record.pdfUrl}
-            onBack={() => setShowPdf({operationId: null, type: undefined})}
-            recordId={record.id}
-            setStatus={showPdf.allowStatusChange ? async (status) => {
-              const updatedRecord = { ...record, status };
-              const newRecordsByConsistency = { ...recordsByConsistency };
-              Object.keys(newRecordsByConsistency).forEach((cons: string) => {
-                Object.keys(newRecordsByConsistency[cons]).forEach((vehId: string) => {
-                  // @ts-ignore
-                  (newRecordsByConsistency[cons][vehId] as any[]) = (newRecordsByConsistency[cons][vehId] as any[]).map((r: any) =>
-                    r.id === record.id ? updatedRecord : r
-                  );
-                });
-              });
-              setRecordsByConsistency(newRecordsByConsistency);
-              const consKey = (record as any).consistency;
-              const vehKey = (record as any).vehicleId.toString();
-              const vehObj = newRecordsByConsistency[consKey] as { [key: string]: any[] };
-              await updateRecords(consKey, (record as any).vehicleId, vehObj[vehKey] as any[]);
-              setShowPdf({operationId: null, type: undefined});
-            } : undefined}
-            currentStatus={record.status || 'non commencé'}
-          />
+          <Dialog open onClose={() => setShowPdf({operationId: null, type: undefined})} maxWidth="xl" fullWidth>
+            <DialogTitle>
+              <Button onClick={() => setShowPdf({operationId: null, type: undefined})} variant="outlined">Fermer</Button>
+            </DialogTitle>
+            <DialogContent sx={{ p: 0 }}>
+              {/* Affichage du PDF dans un iframe, expérience native */}
+              <Box>
+                <iframe
+                  src={record.pdfUrl}
+                  title="Fiche de traçabilité"
+                  width="100%"
+                  height="800px"
+                  style={{ border: 'none' }}
+                />
+                <Box display="flex" gap={2} justifyContent="flex-end" mt={2}>
+                  {/* Bouton pour uploader le PDF modifié (workflow manuel) */}
+                  <Button
+                    variant="contained"
+                    component="label"
+                    color="primary"
+                  >
+                    Uploader le PDF modifié
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      hidden
+                      onChange={async (e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          const file = e.target.files[0];
+                          const arrayBuffer = await file.arrayBuffer();
+                          // On sauvegarde sur SharePoint via la logique existante
+                          const maintenanceService = MaintenanceService.getInstance();
+                          await maintenanceService.updatePdfFile(record.pdfUrl.split('/items/')[1]?.split('/')[0], new Uint8Array(arrayBuffer));
+                          alert('PDF modifié sauvegardé sur SharePoint !');
+                        }
+                      }}
+                    />
+                  </Button>
+                </Box>
+              </Box>
+            </DialogContent>
+          </Dialog>
         );
       }
-      // 2. Sinon, on tente d'ouvrir la fiche de base (SharePoint) via le nom du système/opération
-      // Recherche du système et du nom attendu
-      const system = systems.find((s: System) => s.operations.some((o: { id: string }) => o.id === record?.operationId));
-      if (system) {
-        const formattedSystemName = system.name.replace(/\./g, '-');
-        const traceabilityFileName = `FT-LGT-${formattedSystemName}.pdf`;
-        // On utilise PdfViewerSharepoint pour ouvrir la fiche de base
-        return (
-          <PdfViewerSharepoint
-            operationCode={record?.operationId}
-            type="tracabilite"
-            onBack={() => setShowPdf({operationId: null, type: undefined})}
-            systems={systems}
-            allowStatusChange={false}
-            recordId={record?.id}
-          />
-        );
-      }
-      // Si rien trouvé
+      // Si rien trouvé, fallback ou message d'erreur
       return (
         <Dialog open onClose={() => setShowPdf({operationId: null, type: undefined})}>
           <DialogTitle>Fiche de traçabilité non disponible</DialogTitle>
