@@ -47,6 +47,7 @@ import { pdfjs, Document, Page } from 'react-pdf';
 import { PDFDocument, rgb } from 'pdf-lib';
 import PullToRefresh from 'react-pull-to-refresh';
 import { useSwipeable } from 'react-swipeable';
+import PDFFormViewer from './PDFFormViewer';
 pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.min.js`;
 
 interface VehiclePlanProps {
@@ -263,17 +264,25 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         )}
         {!loading && (type === 'tracabilite' || type === 'protocole') && (
           objectUrl ? (
-            <EditablePDFViewer
+            <PDFFormViewer
               url={objectUrl}
-              fileId={objectUrl ? objectUrl.split('/items/')[1]?.split('/')[0] : undefined}
+              fileId={(objectUrl && objectUrl.split('/items/')[1]?.split('/')[0]) || ''}
               status={currentStatus === 'terminé' ? 'terminé' : 'en cours'}
               onStatusChange={async (newStatus) => {
-                if (setStatus) {
+                if (setStatus && (newStatus === 'en cours' || newStatus === 'terminé')) {
                   await setStatus(newStatus);
                 }
               }}
               saving={saving}
-              onSave={async (_data, _newStatus) => {}}
+              onSave={async (data, newStatus) => {
+                if (data && objectUrl) {
+                  const fileId = objectUrl.split('/items/')[1]?.split('/')[0];
+                  if (fileId) {
+                    const maintenanceService = MaintenanceService.getInstance();
+                    await maintenanceService.updatePdfFile(fileId, data);
+                  }
+                }
+              }}
               onBack={onBack}
             />
           ) : (
