@@ -93,6 +93,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
   const isMobile = useMediaQuery('(max-width:600px)');
   const [saving, setSaving] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const maintenanceService = MaintenanceService.getInstance();
 
   // Fonction pour formater le nom du système
   const formatSystemName = (name: string): string => {
@@ -167,7 +168,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         if (file) {
           console.log('Fichier SharePoint trouvé (protocole) :', file);
           if (file['@microsoft.graph.downloadUrl']) {
-          setObjectUrl(file['@microsoft.graph.downloadUrl']);
+            setObjectUrl(file['@microsoft.graph.downloadUrl']);
             console.log('Affichage du PDF via PDF.js :', file['@microsoft.graph.downloadUrl']);
           } else {
             setError('Impossible d\'afficher le PDF');
@@ -175,7 +176,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         } else {
           setError('protocole non disponible');
         }
-      } else if (type === 'tracabilite') {
+      } else {
         const system = systems.find((s: System) => s.operations.some((o: { id: string }) => o.id === operationCode));
         if (!system) {
           setError('Système non trouvé');
@@ -191,7 +192,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         if (file) {
           console.log('Fichier SharePoint trouvé (traçabilité) :', file);
           if (file['@microsoft.graph.downloadUrl']) {
-          setObjectUrl(file['@microsoft.graph.downloadUrl']);
+            setObjectUrl(file['@microsoft.graph.downloadUrl']);
             console.log('Affichage du PDF via PDF.js :', file['@microsoft.graph.downloadUrl']);
           } else {
             setError('Impossible d\'afficher le PDF');
@@ -231,26 +232,28 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
         <DialogTitle>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Button onClick={onBack} variant="outlined">Fermer</Button>
-            {type === 'tracabilite' && allowStatusChange && (
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <Button
-                  variant={currentStatus === 'en cours' ? 'contained' : 'outlined'}
-                  color="warning"
-                  onClick={() => handleStatusChange('en cours')}
-                  disabled={saving}
-                >
-                  {saving ? 'Sauvegarde...' : 'Sauvegarder (en cours)'}
-                </Button>
-                <Button
-                  variant={currentStatus === 'terminé' ? 'contained' : 'outlined'}
-                  color="success"
-                  onClick={() => handleStatusChange('terminé')}
-                  disabled={saving}
-                >
-                  {saving ? 'Sauvegarde...' : 'Terminer'}
-                </Button>
-              </Box>
-            )}
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              {type === 'tracabilite' && allowStatusChange && (
+                <>
+                  <Button
+                    variant={currentStatus === 'en cours' ? 'contained' : 'outlined'}
+                    color="warning"
+                    onClick={() => handleStatusChange('en cours')}
+                    disabled={saving}
+                  >
+                    {saving ? 'Sauvegarde...' : 'Sauvegarder (en cours)'}
+                  </Button>
+                  <Button
+                    variant={currentStatus === 'terminé' ? 'contained' : 'outlined'}
+                    color="success"
+                    onClick={() => handleStatusChange('terminé')}
+                    disabled={saving}
+                  >
+                    {saving ? 'Sauvegarde...' : 'Terminer'}
+                  </Button>
+                </>
+              )}
+            </Box>
           </Box>
         </DialogTitle>
       )}
@@ -262,10 +265,10 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
           objectUrl ? (
             <EditablePDFViewer
               url={objectUrl}
+              fileId={objectUrl ? objectUrl.split('/items/')[1]?.split('/')[0] : undefined}
               status={currentStatus === 'terminé' ? 'terminé' : 'en cours'}
               onStatusChange={async (newStatus) => {
                 if (setStatus) {
-                  console.log('[DEBUG] setStatus appelé avec', newStatus, 'pour record', { operationCode, type, currentStatus });
                   await setStatus(newStatus);
                 }
               }}
@@ -318,7 +321,15 @@ function ViewerModal({ url, onBack, recordId, setStatus, currentStatus }: Viewer
         )}
       </DialogTitle>
       <DialogContent sx={{ p: 0 }}>
-        <iframe src={url} title={url} width="100%" height="800px" style={{ border: 'none' }} />
+        <EditablePDFViewer
+          url={url}
+          fileId={url ? url.split('/items/')[1]?.split('/')[0] : undefined}
+          status={currentStatus === 'terminé' ? 'terminé' : 'en cours'}
+          onStatusChange={() => {}}
+          saving={false}
+          onSave={async () => {}}
+          onBack={onBack}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -634,6 +645,49 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             : record
         );
       } else {
+        let pdfUrl: string | undefined = undefined;
+        try {
+          const token = await instance.acquireTokenSilent({
+            scopes: [
+              'Files.Read.All',
+              'Sites.Read.All',
+              'Files.ReadWrite.All',
+              'Sites.ReadWrite.All',
+              'Sites.ReadWrite.All'
+            ],
+            account: accounts[0],
+          });
+          maintenanceService.setAccessToken(token.accessToken);
+          // Recherche du fichier de traçabilité de base
+          const SHAREPOINT_SITE_ID = 'arlingtonfleetfrance.sharepoint.com,3d42766f-7bce-4b8e-92e0-70272ae2b95e,cfa621f3-5013-433c-9d14-3c519f11bb8d';
+          const SHAREPOINT_DRIVE_ID = 'b!b3ZCPc57jkuS4HAnKuK5XvMhps8TUDxDnRQ8UZ8Ru426aMo8mBCBTrOSBU5EbQE4';
+          const SHAREPOINT_FOLDER_ID = '01UIJT6YLQOURHAQCBSRB2FWB5PX6OZRJG';
+          const system = systems.find((s: System) => s.id === selectedSystem);
+          const formattedSystemName = system ? system.name.replace(/\./g, '-') : selectedSystem;
+          const traceabilityFileName = `FT-LGT-${formattedSystemName}.pdf`;
+          // Récupérer la liste des fichiers du dossier
+          const res = await fetch(
+            `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${SHAREPOINT_FOLDER_ID}/children`,
+            { headers: { Authorization: `Bearer ${token.accessToken}` } }
+          );
+          const data = await res.json();
+          const file = (data.value as any[]).find((f: any) =>
+            f.parentReference && f.parentReference.path && f.parentReference.path.includes('ESSAI OUTILS') &&
+            f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
+          );
+          if (file) {
+            // Générer le nom de la copie : <IDFichierBase>-YYYYMMDDHHmmss.pdf
+            const now = new Date();
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            const dateStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+            const newFileName = `${file.id}-${dateStr}.pdf`;
+            // Copier le fichier
+            const copiedFile = await maintenanceService.copyFile(file.id, SHAREPOINT_FOLDER_ID, newFileName);
+            pdfUrl = copiedFile['@microsoft.graph.downloadUrl'];
+          }
+        } catch (err) {
+          console.error('Erreur lors de la copie du PDF de traçabilité :', err);
+        }
         const newRecord: MaintenanceRecord = {
           id: Date.now().toString(),
           vehicleId: selectedVehicle.id,
@@ -643,7 +697,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           timestamp: new Date(),
           comment,
           user: userName,
-          status: 'non commencé'
+          status: 'non commencé',
+          pdfUrl
         };
         updatedRecords = [...currentRecords, newRecord];
       }
@@ -1032,6 +1087,34 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   // Affichage de la modale PDF (protocole ou traçabilité) si demandée
   if (showPdf.operationId && showPdf.type) {
     const record = recordsByConsistency[selectedConsistency]?.[selectedVehicle?.id || 0]?.find(r => r.id === showPdf.recordId);
+    // --- NOUVEAU : Utiliser la copie unique si pdfUrl existe ---
+    if (showPdf.type === 'tracabilite' && record?.pdfUrl) {
+      return (
+        <ViewerModal
+          url={record.pdfUrl}
+          onBack={() => setShowPdf({operationId: null, type: undefined})}
+          recordId={showPdf.recordId}
+          setStatus={record && showPdf.allowStatusChange ? async (status) => {
+            if (selectedVehicle && selectedConsistency && record) {
+              const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r =>
+                r.id === record.id ? { ...r, status } : r
+              );
+              setRecordsByConsistency(prev => ({
+                ...prev,
+                [selectedConsistency]: {
+                  ...prev[selectedConsistency],
+                  [selectedVehicle.id]: updatedRecords
+                }
+              }));
+              await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
+              setShowPdf({operationId: null, type: undefined});
+            }
+          } : undefined}
+          currentStatus={record?.status || 'non commencé'}
+        />
+      );
+    }
+    // --- FIN NOUVEAU ---
     return (
       <PdfViewerSharepoint
         operationCode={showPdf.operationId}
@@ -1039,13 +1122,9 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         onBack={() => setShowPdf({operationId: null, type: undefined})}
         setStatus={record && showPdf.allowStatusChange ? async (status) => {
           if (selectedVehicle && selectedConsistency && record) {
-            console.log('[DEBUG] setStatus appelé avec', status, 'pour record', record);
-            // Mise à jour du statut dans le state local
             const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r => {
               if (r.id === record.id) {
-                console.log('[DEBUG] Avant maj statut:', r);
                 const updated = { ...r, status };
-                console.log('[DEBUG] Après maj statut:', updated);
                 return updated;
               }
               return r;
@@ -1057,9 +1136,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                 [selectedVehicle.id]: updatedRecords
               }
             }));
-            // Sauvegarde dans SharePoint
             await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
-            // Fermeture de la modale après la sauvegarde
             setShowPdf({operationId: null, type: undefined});
           }
         } : undefined}
@@ -1605,18 +1682,20 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
 
 interface EditablePDFViewerProps {
   url: string;
+  fileId?: string; // Ajout de l'ID du fichier pour l'upload
   onSave: (modifiedPdf: Uint8Array | null, newStatus: 'en cours' | 'terminé') => Promise<void>;
   status: 'en cours' | 'terminé';
   onStatusChange: (status: 'en cours' | 'terminé') => void;
   saving: boolean;
   onBack: () => void;
 }
-const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, onSave, status, onStatusChange, saving, onBack }) => {
+const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, onSave, status, onStatusChange, saving, onBack }) => {
   const [pdfData, setPdfData] = React.useState<Uint8Array | null>(null);
   const [annotation, setAnnotation] = React.useState('');
   const [numPages, setNumPages] = React.useState<number | null>(null);
   const [pageNumber, setPageNumber] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
+  const [savingPdf, setSavingPdf] = React.useState(false);
 
   React.useEffect(() => {
     fetch(url)
@@ -1643,10 +1722,21 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, onSave, stat
   };
 
   const handleSave = async (newStatus: 'en cours' | 'terminé') => {
-    await onStatusChange(newStatus);
-    if (onSave) await onSave(null, newStatus);
-    // Fermer la fiche après la sauvegarde
-    onBack();
+    setSavingPdf(true);
+    try {
+      if (pdfData && fileId) {
+        // Upload du PDF modifié sur SharePoint
+        const maintenanceService = MaintenanceService.getInstance();
+        await maintenanceService.updatePdfFile(fileId, pdfData);
+      }
+      await onStatusChange(newStatus);
+      if (onSave) await onSave(pdfData, newStatus);
+      onBack();
+    } catch (err) {
+      alert('Erreur lors de la sauvegarde du PDF : ' + err);
+    } finally {
+      setSavingPdf(false);
+    }
   };
 
   return (
@@ -1671,6 +1761,10 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, onSave, stat
         />
       )}
       {!pdfData && <div style={{ color: '#fff', textAlign: 'center', marginTop: 40 }}>Chargement du PDF…</div>}
+      <div style={{ margin: 8, display: 'flex', gap: 8 }}>
+        <button onClick={() => handleSave('en cours')} disabled={savingPdf || loading}>Sauvegarder</button>
+        <button onClick={() => handleSave('terminé')} disabled={savingPdf || loading}>Terminer</button>
+      </div>
     </div>
   );
 };

@@ -15,6 +15,17 @@ interface SharePointResponse {
   value: SharePointFile[];
 }
 
+interface CopyFileResponse {
+  id: string;
+  name: string;
+  '@microsoft.graph.downloadUrl': string;
+}
+
+interface CopyStatusResponse {
+  status: 'inProgress' | 'completed' | 'failed';
+  resource?: CopyFileResponse;
+}
+
 export class MaintenanceService {
   private static instance: MaintenanceService;
   private accessToken: string | null = null;
@@ -148,6 +159,86 @@ export class MaintenanceService {
     } catch (error) {
       console.error('Erreur lors de la sauvegarde des consistances:', error);
       throw new Error('Erreur lors de la sauvegarde des consistances');
+    }
+  }
+
+  public async copyFile(sourceFileId: string, destinationFolderId: string, newFileName: string): Promise<CopyFileResponse> {
+    try {
+      const headers = await this.getHeaders();
+      
+      // Préparer le corps de la requête pour la copie
+      const copyRequestBody = {
+        parentReference: {
+          driveId: SHAREPOINT_DRIVE_ID,
+          id: destinationFolderId
+        },
+        name: newFileName
+      };
+
+      // Lancer la copie
+      const copyResponse = await axios.post(
+        `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${sourceFileId}/copy`,
+        copyRequestBody,
+        { 
+          headers: { 
+            ...headers,
+            'Content-Type': 'application/json',
+            'Prefer': 'respond-async'
+          }
+        }
+      );
+
+      // La copie est asynchrone, nous devons attendre qu'elle soit terminée
+      const monitorUrl = copyResponse.headers['location'];
+      let copyStatus = 'inProgress';
+      let copiedFile: CopyFileResponse | null = null;
+
+      while (copyStatus === 'inProgress') {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Attendre 1 seconde
+        const statusResponse = await axios.get<CopyStatusResponse>(monitorUrl, { headers });
+        copyStatus = statusResponse.data.status;
+        
+        if (copyStatus === 'completed' && statusResponse.data.resource) {
+          copiedFile = statusResponse.data.resource;
+          break;
+        }
+      }
+
+      if (!copiedFile) {
+        throw new Error('La copie du fichier a échoué');
+      }
+
+      return copiedFile;
+    } catch (error: any) {
+      let message = 'Erreur lors de la copie du fichier';
+      if (error.response && error.response.data && error.response.data.error) {
+        message += ` : ${error.response.data.error.message}`;
+      }
+      console.error(message, error);
+      throw new Error(message);
+    }
+  }
+
+  public async updatePdfFile(fileId: string, pdfData: Uint8Array): Promise<void> {
+    try {
+      const headers = await this.getHeaders();
+      await axios.put(
+        `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${fileId}/content`,
+        pdfData,
+        {
+          headers: {
+            ...headers,
+            'Content-Type': 'application/pdf'
+          }
+        }
+      );
+    } catch (error: any) {
+      let message = 'Erreur lors de la mise à jour du PDF sur SharePoint';
+      if (error.response && error.response.data && error.response.data.error) {
+        message += ` : ${error.response.data.error.message}`;
+      }
+      console.error(message, error);
+      throw new Error(message);
     }
   }
 } 

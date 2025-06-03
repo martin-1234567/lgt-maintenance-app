@@ -30,4 +30,5 @@ export interface MaintenanceRecord {
   comment?: string;
   status?: 'non commencé' | 'en cours' | 'terminé';
   user?: string;
+  pdfUrl?: string;
 } 
