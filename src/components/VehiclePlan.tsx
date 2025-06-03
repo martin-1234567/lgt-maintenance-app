@@ -1104,64 +1104,101 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         )
       );
     const record = allRecords.find((r: any) => r.id === showPdf.recordId);
-    if (showPdf.type === 'tracabilite' && record?.pdfUrl) {
-      // On ouvre la copie du PDF créée à la création de l'enregistrement
-      return (
-        <ViewerModal
-          url={record.pdfUrl}
-          onBack={() => setShowPdf({operationId: null, type: undefined})}
-          recordId={record.id}
-          setStatus={showPdf.allowStatusChange ? async (status) => {
-            // Met à jour le statut de l'enregistrement
-            const updatedRecord = { ...record, status };
-            // Remplace dans recordsByConsistency
-            const newRecordsByConsistency = { ...recordsByConsistency };
-            Object.keys(newRecordsByConsistency).forEach((cons: string) => {
-              Object.keys(newRecordsByConsistency[cons]).forEach((vehId: string) => {
-                // @ts-ignore
-                (newRecordsByConsistency[cons][vehId] as any[]) = (newRecordsByConsistency[cons][vehId] as any[]).map((r: any) =>
-                  r.id === record.id ? updatedRecord : r
-                );
+
+    // --- OUVERTURE FICHE DE TRAÇABILITÉ ---
+    if (showPdf.type === 'tracabilite') {
+      // 1. Si la copie existe (pdfUrl), on l'ouvre
+      if (record?.pdfUrl) {
+        return (
+          <ViewerModal
+            url={record.pdfUrl}
+            onBack={() => setShowPdf({operationId: null, type: undefined})}
+            recordId={record.id}
+            setStatus={showPdf.allowStatusChange ? async (status) => {
+              const updatedRecord = { ...record, status };
+              const newRecordsByConsistency = { ...recordsByConsistency };
+              Object.keys(newRecordsByConsistency).forEach((cons: string) => {
+                Object.keys(newRecordsByConsistency[cons]).forEach((vehId: string) => {
+                  // @ts-ignore
+                  (newRecordsByConsistency[cons][vehId] as any[]) = (newRecordsByConsistency[cons][vehId] as any[]).map((r: any) =>
+                    r.id === record.id ? updatedRecord : r
+                  );
+                });
               });
-            });
-            setRecordsByConsistency(newRecordsByConsistency);
-            // Cast record en any pour accéder à consistency et vehicleId
-            const consKey = (record as any).consistency;
-            const vehKey = (record as any).vehicleId.toString();
-            const vehObj = newRecordsByConsistency[consKey] as { [key: string]: any[] };
-            await updateRecords(consKey, (record as any).vehicleId, vehObj[vehKey] as any[]);
-            setShowPdf({operationId: null, type: undefined});
-          } : undefined}
-          currentStatus={record.status || 'non commencé'}
-        />
-      );
-    }
-    if (showPdf.type === 'protocole') {
-      // Logique d'ouverture du protocole (à adapter si besoin)
-      // Ici, tu peux utiliser PdfViewerSharepoint ou une modale similaire
+              setRecordsByConsistency(newRecordsByConsistency);
+              const consKey = (record as any).consistency;
+              const vehKey = (record as any).vehicleId.toString();
+              const vehObj = newRecordsByConsistency[consKey] as { [key: string]: any[] };
+              await updateRecords(consKey, (record as any).vehicleId, vehObj[vehKey] as any[]);
+              setShowPdf({operationId: null, type: undefined});
+            } : undefined}
+            currentStatus={record.status || 'non commencé'}
+          />
+        );
+      }
+      // 2. Sinon, on tente d'ouvrir la fiche de base (SharePoint) via le nom du système/opération
+      // Recherche du système et du nom attendu
+      const system = systems.find((s: System) => s.operations.some((o: { id: string }) => o.id === record?.operationId));
+      if (system) {
+        const formattedSystemName = system.name.replace(/\./g, '-');
+        const traceabilityFileName = `FT-LGT-${formattedSystemName}.pdf`;
+        // On utilise PdfViewerSharepoint pour ouvrir la fiche de base
+        return (
+          <PdfViewerSharepoint
+            operationCode={record?.operationId}
+            type="tracabilite"
+            onBack={() => setShowPdf({operationId: null, type: undefined})}
+            systems={systems}
+            allowStatusChange={false}
+            recordId={record?.id}
+          />
+        );
+      }
+      // Si rien trouvé
       return (
-        <PdfViewerSharepoint
-          operationCode={showPdf.operationId}
-          type="protocole"
-          onBack={() => setShowPdf({operationId: null, type: undefined})}
-          systems={systems}
-          allowStatusChange={false}
-          recordId={showPdf.recordId}
-        />
+        <Dialog open onClose={() => setShowPdf({operationId: null, type: undefined})}>
+          <DialogTitle>Fiche de traçabilité non disponible</DialogTitle>
+          <DialogContent>
+            <Typography color="error">Impossible de trouver la fiche de traçabilité pour cet enregistrement.</Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowPdf({operationId: null, type: undefined})}>Fermer</Button>
+          </DialogActions>
+        </Dialog>
       );
     }
-    // Si la fiche n'existe pas
-    return (
-      <Dialog open onClose={() => setShowPdf({operationId: null, type: undefined})}>
-        <DialogTitle>Fiche non disponible</DialogTitle>
-        <DialogContent>
-          <Typography color="error">Impossible de trouver la fiche de traçabilité ou le protocole pour cet enregistrement.</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowPdf({operationId: null, type: undefined})}>Fermer</Button>
-        </DialogActions>
-      </Dialog>
-    );
+
+    // --- OUVERTURE PROTOCOLE ---
+    if (showPdf.type === 'protocole') {
+      // Recherche du système et de l'opération
+      const system = systems.find((s: System) => s.operations.some((o: { id: string }) => o.id === showPdf.operationId));
+      const operation = system?.operations.find((o: { id: string }) => o.id === showPdf.operationId);
+      if (operation) {
+        // On utilise PdfViewerSharepoint pour ouvrir le protocole
+        return (
+          <PdfViewerSharepoint
+            operationCode={showPdf.operationId}
+            type="protocole"
+            onBack={() => setShowPdf({operationId: null, type: undefined})}
+            systems={systems}
+            allowStatusChange={false}
+            recordId={showPdf.recordId}
+          />
+        );
+      }
+      // Si rien trouvé
+      return (
+        <Dialog open onClose={() => setShowPdf({operationId: null, type: undefined})}>
+          <DialogTitle>Protocole non disponible</DialogTitle>
+          <DialogContent>
+            <Typography color="error">Impossible de trouver le protocole pour cette opération.</Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowPdf({operationId: null, type: undefined})}>Fermer</Button>
+          </DialogActions>
+        </Dialog>
+      );
+    }
   }
   // ... existing code ...
 
