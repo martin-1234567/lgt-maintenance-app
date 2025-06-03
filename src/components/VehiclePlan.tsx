@@ -94,6 +94,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
   const [excelData, setExcelData] = useState<any[][] | null>(null);
   const isMobile = useMediaQuery('(max-width:600px)');
   const [saving, setSaving] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null); // Ajout du token
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const maintenanceService = MaintenanceService.getInstance();
 
@@ -211,6 +212,8 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
   };
 
   useEffect(() => {
+    // Récupère le token d'accès dès le montage
+    getAccessToken().then(token => setAccessToken(token)).catch(() => setAccessToken(null));
     fetchUrl();
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
@@ -285,6 +288,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
                 }
               }}
               onBack={onBack}
+              accessToken={accessToken || undefined} // Passe le token ici
             />
           ) : (
             <Box sx={{ color: 'red', fontWeight: 'bold', fontSize: '1.1rem', mt: 10, textAlign: 'center' }}>

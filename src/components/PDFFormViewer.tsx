@@ -16,6 +16,7 @@ interface PDFFormViewerProps {
   onStatusChange: (newStatus: string) => Promise<void>;
   saving: boolean;
   onBack: () => void;
+  accessToken?: string;
 }
 
 interface FormField {
@@ -30,54 +31,62 @@ const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
   status,
   onStatusChange,
   saving,
-  onBack
+  onBack,
+  accessToken
 }) => {
   const [pdfData, setPdfData] = useState<string | null>(null);
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingPdf, setSavingPdf] = useState(false);
   const [currentField, setCurrentField] = useState<FormField | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const loadPDF = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        let arrayBuffer: ArrayBuffer;
+        if (accessToken && url.startsWith('https://arlingtonfleetfrance.sharepoint.com')) {
+          const response = await fetch(url, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
+          if (!response.ok) throw new Error('Erreur lors du téléchargement du PDF SharePoint');
+          arrayBuffer = await response.arrayBuffer();
+        } else {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error('Erreur lors du téléchargement du PDF');
+          arrayBuffer = await response.arrayBuffer();
+        }
+        const pdfDoc = await PDFDocument.load(arrayBuffer);
+        const form = pdfDoc.getForm();
+        const fields = form.getFields();
+        const extractedFields: FormField[] = fields.map(field => {
+          const name = field.getName() || '';
+          const value = typeof (field as PDFTextField).getText === 'function'
+            ? (field as PDFTextField).getText() || ''
+            : '';
+          return { name, value };
+        });
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const newUrl = URL.createObjectURL(blob);
+        setPdfData(newUrl);
+        setFormFields(extractedFields);
+      } catch (err: any) {
+        setError('Impossible de charger le PDF (accès SharePoint ou format invalide).');
+        setPdfData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
     loadPDF();
     return () => {
       if (pdfData) {
         URL.revokeObjectURL(pdfData);
       }
     };
-  }, [url]);
-
-  const loadPDF = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(url);
-      const arrayBuffer = await response.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(arrayBuffer);
-      
-      // Extraire les champs de formulaire
-      const form = pdfDoc.getForm();
-      const fields = form.getFields();
-      const extractedFields: FormField[] = fields.map(field => {
-        const name = field.getName() || '';
-        const value = typeof (field as PDFTextField).getText === 'function'
-          ? (field as PDFTextField).getText() || ''
-          : '';
-        return { name, value };
-      });
-
-      // Mettre à jour le PDF avec les valeurs des champs
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const newUrl = URL.createObjectURL(blob);
-      setPdfData(newUrl);
-      setFormFields(extractedFields);
-    } catch (error) {
-      console.error('Erreur lors du chargement du PDF:', error);
-      setPdfData(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [url, accessToken]);
 
   const handleFieldChange = async (name: string, value: string) => {
     try {
@@ -130,6 +139,15 @@ const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
         <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box>
+        <Typography color="error">{error}</Typography>
+        <Button onClick={onBack}>Retour</Button>
       </Box>
     );
   }
