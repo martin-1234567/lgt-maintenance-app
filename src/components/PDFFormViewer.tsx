@@ -59,7 +59,9 @@ const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
       const fields = form.getFields();
       const extractedFields: FormField[] = fields.map(field => {
         const name = field.getName() || '';
-        const value = (field as PDFTextField).getText() || '';
+        const value = typeof (field as PDFTextField).getText === 'function'
+          ? (field as PDFTextField).getText() || ''
+          : '';
         return { name, value };
       });
 
@@ -71,6 +73,7 @@ const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
       setFormFields(extractedFields);
     } catch (error) {
       console.error('Erreur lors du chargement du PDF:', error);
+      setPdfData(null);
     } finally {
       setLoading(false);
     }
@@ -127,6 +130,15 @@ const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
         <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!pdfData) {
+    return (
+      <Box>
+        <Typography color="error">Impossible de charger le PDF ou le PDF ne contient pas de champs de formulaire éditables.</Typography>
+        <Button onClick={onBack}>Retour</Button>
       </Box>
     );
   }
