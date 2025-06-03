@@ -48,7 +48,8 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import PullToRefresh from 'react-pull-to-refresh';
 import { useSwipeable } from 'react-swipeable';
 import PDFFormViewer from './PDFFormViewer';
-pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.min.js`;
+// Correction du worker PDF.js pour compatibilité universelle
+pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.js`;
 
 interface VehiclePlanProps {
   vehicle: Vehicle;
@@ -1093,11 +1094,12 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     }
   };
 
-  // Affichage de la modale PDF (protocole ou traçabilité) si demandée
+  // --- Affichage de la modale PDF (protocole ou traçabilité) si demandée ---
   if (showPdf.operationId && showPdf.type) {
     const record = recordsByConsistency[selectedConsistency]?.[selectedVehicle?.id || 0]?.find(r => r.id === showPdf.recordId);
-    // --- NOUVEAU : Utiliser la copie unique si pdfUrl existe ---
+    // Toujours ouvrir la copie unique si pdfUrl existe
     if (showPdf.type === 'tracabilite' && record?.pdfUrl) {
+      // On ouvre la copie du PDF créée à la création de l'enregistrement
       return (
         <ViewerModal
           url={record.pdfUrl}
@@ -1123,40 +1125,10 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         />
       );
     }
-    // --- FIN NOUVEAU ---
-    return (
-      <PdfViewerSharepoint
-        operationCode={showPdf.operationId}
-        type={showPdf.type}
-        onBack={() => setShowPdf({operationId: null, type: undefined})}
-        setStatus={record && showPdf.allowStatusChange ? async (status) => {
-          if (selectedVehicle && selectedConsistency && record) {
-            const updatedRecords = recordsByConsistency[selectedConsistency][selectedVehicle.id].map(r => {
-              if (r.id === record.id) {
-                const updated = { ...r, status };
-                return updated;
-              }
-              return r;
-            });
-            setRecordsByConsistency(prev => ({
-              ...prev,
-              [selectedConsistency]: {
-                ...prev[selectedConsistency],
-                [selectedVehicle.id]: updatedRecords
-              }
-            }));
-            await updateRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
-            setShowPdf({operationId: null, type: undefined});
-          }
-        } : undefined}
-        currentStatus={record?.status || 'non commencé'}
-        setTab={setTab}
-        systems={systems}
-        allowStatusChange={showPdf.allowStatusChange}
-        recordId={showPdf.recordId}
-      />
-    );
+    // Fallback : ancienne logique (ne devrait plus être utilisée)
+    // ... existing code ...
   }
+  // ... existing code ...
 
   // Affichage principal détaillé : uniquement si consistance ET véhicule sélectionnés
   return (
