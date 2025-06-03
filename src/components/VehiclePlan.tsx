@@ -1102,7 +1102,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onScroll={handleScroll}
         sx={{ 
           height: '100vh',
           overflow: 'auto',
