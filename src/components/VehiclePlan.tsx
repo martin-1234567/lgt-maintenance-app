@@ -111,10 +111,10 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
     }
     const response = await instance.acquireTokenSilent({
       scopes: [
-        'https://graph.microsoft.com/Files.Read.All',
-        'https://graph.microsoft.com/Sites.Read.All',
-        'https://graph.microsoft.com/Files.ReadWrite.All',
-        'https://graph.microsoft.com/Sites.ReadWrite.All'
+        'Files.Read.All',
+        'Sites.Read.All',
+        'Files.ReadWrite.All',
+        'Sites.ReadWrite.All'
       ],
       account: accounts[0],
     });
@@ -599,10 +599,10 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       }
       const response = await instance.acquireTokenSilent({
         scopes: [
-          'https://graph.microsoft.com/Files.Read.All',
-          'https://graph.microsoft.com/Sites.Read.All',
-          'https://graph.microsoft.com/Files.ReadWrite.All',
-          'https://graph.microsoft.com/Sites.ReadWrite.All'
+          'Files.Read.All',
+          'Sites.Read.All',
+          'Files.ReadWrite.All',
+          'Sites.ReadWrite.All'
         ],
         account: accounts[0],
       });
@@ -633,10 +633,10 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       }
       const response = await instance.acquireTokenSilent({
         scopes: [
-          'https://graph.microsoft.com/Files.Read.All',
-          'https://graph.microsoft.com/Sites.Read.All',
-          'https://graph.microsoft.com/Files.ReadWrite.All',
-          'https://graph.microsoft.com/Sites.ReadWrite.All'
+          'Files.Read.All',
+          'Sites.Read.All',
+          'Files.ReadWrite.All',
+          'Sites.ReadWrite.All'
         ],
         account: accounts[0],
       });
@@ -671,10 +671,10 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         try {
           const token = await instance.acquireTokenSilent({
             scopes: [
-              'https://graph.microsoft.com/Files.Read.All',
-              'https://graph.microsoft.com/Sites.Read.All',
-              'https://graph.microsoft.com/Files.ReadWrite.All',
-              'https://graph.microsoft.com/Sites.ReadWrite.All'
+              'Files.Read.All',
+              'Sites.Read.All',
+              'Files.ReadWrite.All',
+              'Sites.ReadWrite.All'
             ],
             account: accounts[0],
           });
@@ -961,10 +961,10 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       if (!accounts || accounts.length === 0) return;
       const response = await instance.acquireTokenSilent({
         scopes: [
-          'https://graph.microsoft.com/Files.Read.All',
-          'https://graph.microsoft.com/Sites.Read.All',
-          'https://graph.microsoft.com/Files.ReadWrite.All',
-          'https://graph.microsoft.com/Sites.ReadWrite.All'
+          'Files.Read.All',
+          'Sites.Read.All',
+          'Files.ReadWrite.All',
+          'Sites.ReadWrite.All'
         ],
         account: accounts[0],
       });
@@ -983,10 +983,10 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     if (!accounts || accounts.length === 0) return;
     const response = await instance.acquireTokenSilent({
       scopes: [
-        'https://graph.microsoft.com/Files.Read.All',
-        'https://graph.microsoft.com/Sites.Read.All',
-        'https://graph.microsoft.com/Files.ReadWrite.All',
-        'https://graph.microsoft.com/Sites.ReadWrite.All'
+        'Files.Read.All',
+        'Sites.Read.All',
+        'Files.ReadWrite.All',
+        'Sites.ReadWrite.All'
       ],
       account: accounts[0],
     });
@@ -1016,10 +1016,10 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       if (!accounts || accounts.length === 0) return;
       const response = await instance.acquireTokenSilent({
         scopes: [
-          'https://graph.microsoft.com/Files.Read.All',
-          'https://graph.microsoft.com/Sites.Read.All',
-          'https://graph.microsoft.com/Files.ReadWrite.All',
-          'https://graph.microsoft.com/Sites.ReadWrite.All'
+          'Files.Read.All',
+          'Sites.Read.All',
+          'Files.ReadWrite.All',
+          'Sites.ReadWrite.All'
         ],
         account: accounts[0],
       });
@@ -1085,10 +1085,10 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       timeoutId = setTimeout(() => {}, 10000);
       const response = await instance.acquireTokenSilent({
         scopes: [
-          'https://graph.microsoft.com/Files.Read.All',
-          'https://graph.microsoft.com/Sites.Read.All',
-          'https://graph.microsoft.com/Files.ReadWrite.All',
-          'https://graph.microsoft.com/Sites.ReadWrite.All'
+          'Files.Read.All',
+          'Sites.Read.All',
+          'Files.ReadWrite.All',
+          'Sites.ReadWrite.All'
         ],
         account: accounts[0],
       });
