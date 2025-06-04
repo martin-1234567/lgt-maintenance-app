@@ -111,11 +111,10 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
     }
     const response = await instance.acquireTokenSilent({
       scopes: [
-        'Files.Read.All',
-        'Sites.Read.All',
-        'Files.ReadWrite.All',
-        'Sites.ReadWrite.All',
-        'Sites.ReadWrite.All'
+        'https://graph.microsoft.com/Files.Read.All',
+        'https://graph.microsoft.com/Sites.Read.All',
+        'https://graph.microsoft.com/Files.ReadWrite.All',
+        'https://graph.microsoft.com/Sites.ReadWrite.All'
       ],
       account: accounts[0],
     });
@@ -603,7 +602,12 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         throw new Error("Aucun compte connecté");
       }
       const response = await instance.acquireTokenSilent({
-        scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
+        scopes: [
+          'https://graph.microsoft.com/Files.Read.All',
+          'https://graph.microsoft.com/Sites.Read.All',
+          'https://graph.microsoft.com/Files.ReadWrite.All',
+          'https://graph.microsoft.com/Sites.ReadWrite.All'
+        ],
         account: accounts[0],
       });
       maintenanceService.setAccessToken(response.accessToken);
@@ -632,7 +636,12 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         throw new Error("Aucun compte connecté");
       }
       const response = await instance.acquireTokenSilent({
-        scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
+        scopes: [
+          'https://graph.microsoft.com/Files.Read.All',
+          'https://graph.microsoft.com/Sites.Read.All',
+          'https://graph.microsoft.com/Files.ReadWrite.All',
+          'https://graph.microsoft.com/Sites.ReadWrite.All'
+        ],
         account: accounts[0],
       });
       maintenanceService.setAccessToken(response.accessToken);
@@ -666,11 +675,10 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         try {
           const token = await instance.acquireTokenSilent({
             scopes: [
-              'Files.Read.All',
-              'Sites.Read.All',
-              'Files.ReadWrite.All',
-              'Sites.ReadWrite.All',
-              'Sites.ReadWrite.All'
+              'https://graph.microsoft.com/Files.Read.All',
+              'https://graph.microsoft.com/Sites.Read.All',
+              'https://graph.microsoft.com/Files.ReadWrite.All',
+              'https://graph.microsoft.com/Sites.ReadWrite.All'
             ],
             account: accounts[0],
           });
@@ -956,7 +964,12 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     const fetchConsistencies = async () => {
       if (!accounts || accounts.length === 0) return;
       const response = await instance.acquireTokenSilent({
-        scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
+        scopes: [
+          'https://graph.microsoft.com/Files.Read.All',
+          'https://graph.microsoft.com/Sites.Read.All',
+          'https://graph.microsoft.com/Files.ReadWrite.All',
+          'https://graph.microsoft.com/Sites.ReadWrite.All'
+        ],
         account: accounts[0],
       });
       maintenanceService.setAccessToken(response.accessToken);
@@ -973,7 +986,12 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     setConsistencies(newList);
     if (!accounts || accounts.length === 0) return;
     const response = await instance.acquireTokenSilent({
-      scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
+      scopes: [
+        'https://graph.microsoft.com/Files.Read.All',
+        'https://graph.microsoft.com/Sites.Read.All',
+        'https://graph.microsoft.com/Files.ReadWrite.All',
+        'https://graph.microsoft.com/Sites.ReadWrite.All'
+      ],
       account: accounts[0],
     });
     maintenanceService.setAccessToken(response.accessToken);
@@ -1001,7 +1019,12 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       }
       if (!accounts || accounts.length === 0) return;
       const response = await instance.acquireTokenSilent({
-        scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
+        scopes: [
+          'https://graph.microsoft.com/Files.Read.All',
+          'https://graph.microsoft.com/Sites.Read.All',
+          'https://graph.microsoft.com/Files.ReadWrite.All',
+          'https://graph.microsoft.com/Sites.ReadWrite.All'
+        ],
         account: accounts[0],
       });
       maintenanceService.setAccessToken(response.accessToken);
@@ -1065,7 +1088,12 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       // Timeout de sécurité : arrête le refresh au bout de 10 secondes quoi qu'il arrive
       timeoutId = setTimeout(() => {}, 10000);
       const response = await instance.acquireTokenSilent({
-        scopes: ['Files.Read.All', 'Sites.Read.All', 'Files.ReadWrite.All', 'Sites.ReadWrite.All'],
+        scopes: [
+          'https://graph.microsoft.com/Files.Read.All',
+          'https://graph.microsoft.com/Sites.Read.All',
+          'https://graph.microsoft.com/Files.ReadWrite.All',
+          'https://graph.microsoft.com/Sites.ReadWrite.All'
+        ],
         account: accounts[0],
       });
       maintenanceService.setAccessToken(response.accessToken);
