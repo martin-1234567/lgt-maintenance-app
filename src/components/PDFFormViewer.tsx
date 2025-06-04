@@ -5,8 +5,10 @@ import { Box, TextField, Button, Typography, CircularProgress, Paper } from '@mu
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { MaintenanceService } from '../services/maintenanceService';
+// @ts-ignore
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.js?worker';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface PDFFormViewerProps {
   url: string;

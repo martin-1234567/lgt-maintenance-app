@@ -48,8 +48,10 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import PullToRefresh from 'react-pull-to-refresh';
 import { useSwipeable } from 'react-swipeable';
 import PDFFormViewer from './PDFFormViewer';
-// Correction du worker PDF.js pour compatibilité universelle
-pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.js`;
+// @ts-ignore
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.js?worker';
+
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface VehiclePlanProps {
   vehicle: Vehicle;
