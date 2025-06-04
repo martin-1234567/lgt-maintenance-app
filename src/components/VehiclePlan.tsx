@@ -704,6 +704,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             const newFileName = `${file.id}-${dateStr}.pdf`;
             // Copier le fichier
             const copiedFile = await maintenanceService.copyFile(file.id, SHAREPOINT_FOLDER_ID, newFileName);
+            console.log('Lien downloadUrl de la copie retourné par Graph :', copiedFile['@microsoft.graph.downloadUrl']);
             pdfUrl = copiedFile['@microsoft.graph.downloadUrl'];
           }
         } catch (err) {
