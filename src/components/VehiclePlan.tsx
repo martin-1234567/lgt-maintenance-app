@@ -118,6 +118,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
       ],
       account: accounts[0],
     });
+    console.log('AccessToken:', response.accessToken);
     return response.accessToken;
   };
 
