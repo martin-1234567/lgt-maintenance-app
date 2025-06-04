@@ -41,6 +41,7 @@ export class MaintenanceService {
 
   public setAccessToken(token: string) {
     this.accessToken = token;
+    console.log('[DEBUG] AccessToken utilisé pour SharePoint:', token);
   }
 
   private async getHeaders() {
@@ -165,6 +166,7 @@ export class MaintenanceService {
   public async copyFile(sourceFileId: string, destinationFolderId: string, newFileName: string): Promise<CopyFileResponse> {
     try {
       const headers = await this.getHeaders();
+      console.log('[DEBUG] Headers envoyés pour la copie:', headers);
       
       // Préparer le corps de la requête pour la copie
       const copyRequestBody = {
