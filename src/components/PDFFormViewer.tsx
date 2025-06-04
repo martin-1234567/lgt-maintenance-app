@@ -8,7 +8,7 @@ import { MaintenanceService } from '../services/maintenanceService';
 // @ts-ignore
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.js?worker';
 
-pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.js`;
 
 interface PDFFormViewerProps {
   url: string;
