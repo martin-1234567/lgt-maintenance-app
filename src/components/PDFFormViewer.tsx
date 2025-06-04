@@ -176,24 +176,17 @@ const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
           <Button variant="outlined" onClick={onBack} disabled={saving}>Retour</Button>
           <Button
             variant="contained"
-            component="label"
             color="primary"
             disabled={saving}
+            onClick={async () => {
+              // Sauvegarder le PDF modifié sur SharePoint
+              if (onSave) {
+                await onSave(null, status);
+                alert('PDF modifié sauvegardé sur SharePoint !');
+              }
+            }}
           >
-            Uploader le PDF modifié
-            <input
-              type="file"
-              accept="application/pdf"
-              hidden
-              onChange={async (e) => {
-                if (e.target.files && e.target.files[0]) {
-                  const file = e.target.files[0];
-                  const arrayBuffer = await file.arrayBuffer();
-                  await onSave(new Uint8Array(arrayBuffer), status);
-                  alert('PDF modifié sauvegardé sur SharePoint !');
-                }
-              }}
-            />
+            Sauvegarder
           </Button>
         </Box>
       </Box>

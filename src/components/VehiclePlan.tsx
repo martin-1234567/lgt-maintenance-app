@@ -273,11 +273,7 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
               url={objectUrl}
               fileId={(objectUrl && objectUrl.split('/items/')[1]?.split('/')[0]) || ''}
               status={currentStatus === 'terminé' ? 'terminé' : 'en cours'}
-              onStatusChange={async (newStatus) => {
-                if (setStatus && (newStatus === 'en cours' || newStatus === 'terminé')) {
-                  await setStatus(newStatus);
-                }
-              }}
+              onStatusChange={async (_newStatus) => {}}
               saving={saving}
               onSave={async (data, newStatus) => {
                 if (data && objectUrl) {
@@ -1142,7 +1138,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
 
     // --- OUVERTURE FICHE DE TRAÇABILITÉ ---
     if (showPdf.type === 'tracabilite') {
-      // 1. Si la copie existe (pdfUrl), on l'ouvre dans un iframe
+      // 1. Si la copie existe (pdfUrl), on l'ouvre avec PDFFormViewer pour édition directe
       if (record?.pdfUrl) {
         return (
           <Dialog open onClose={() => setShowPdf({operationId: null, type: undefined})} maxWidth="xl" fullWidth>
@@ -1150,41 +1146,24 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
               <Button onClick={() => setShowPdf({operationId: null, type: undefined})} variant="outlined">Fermer</Button>
             </DialogTitle>
             <DialogContent sx={{ p: 0 }}>
-              {/* Affichage du PDF dans un iframe, expérience native */}
-              <Box>
-                <iframe
-                  src={record.pdfUrl}
-                  title="Fiche de traçabilité"
-                  width="100%"
-                  height="800px"
-                  style={{ border: 'none' }}
-                />
-                <Box display="flex" gap={2} justifyContent="flex-end" mt={2}>
-                  {/* Bouton pour uploader le PDF modifié (workflow manuel) */}
-                  <Button
-                    variant="contained"
-                    component="label"
-                    color="primary"
-                  >
-                    Uploader le PDF modifié
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      hidden
-                      onChange={async (e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          const file = e.target.files[0];
-                          const arrayBuffer = await file.arrayBuffer();
-                          // On sauvegarde sur SharePoint via la logique existante
-                          const maintenanceService = MaintenanceService.getInstance();
-                          await maintenanceService.updatePdfFile(record.pdfUrl.split('/items/')[1]?.split('/')[0], new Uint8Array(arrayBuffer));
-                          alert('PDF modifié sauvegardé sur SharePoint !');
-                        }
-                      }}
-                    />
-                  </Button>
-                </Box>
-              </Box>
+              <PDFFormViewer
+                url={record.pdfUrl}
+                fileId={record.pdfUrl.split('/items/')[1]?.split('/')[0] || ''}
+                status={record.status === 'terminé' ? 'terminé' : 'en cours'}
+                onStatusChange={async (_newStatus) => {}}
+                saving={false}
+                onSave={async (data, newStatus) => {
+                  if (data && record.pdfUrl) {
+                    const fileId = record.pdfUrl.split('/items/')[1]?.split('/')[0];
+                    if (fileId) {
+                      const maintenanceService = MaintenanceService.getInstance();
+                      await maintenanceService.updatePdfFile(fileId, data);
+                    }
+                  }
+                }}
+                onBack={() => setShowPdf({operationId: null, type: undefined})}
+                type="tracabilite"
+              />
             </DialogContent>
           </Dialog>
         );
