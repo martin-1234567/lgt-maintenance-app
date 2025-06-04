@@ -1140,6 +1140,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     if (showPdf.type === 'tracabilite') {
       // 1. Si la copie existe (pdfUrl), on l'ouvre avec PDFFormViewer pour édition directe
       if (record?.pdfUrl) {
+        console.log('Affichage de la fiche de traçabilité, pdfUrl =', record.pdfUrl);
         return (
           <Dialog open onClose={() => setShowPdf({operationId: null, type: undefined})} maxWidth="xl" fullWidth>
             <DialogTitle>
