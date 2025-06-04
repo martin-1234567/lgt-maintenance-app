@@ -24,6 +24,7 @@ import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Button from '@mui/material/Button';
 import { MaintenanceService } from './services/maintenanceService';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 const vehicles: Vehicle[] = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
@@ -462,6 +463,14 @@ function App() {
             <ListItemText>{t.language}</ListItemText>
           </MenuItem>
           <MenuItem onClick={handleVisualMenuOpen}>{t.visual}</MenuItem>
+          {accounts && accounts.length > 0 ? (
+            <MenuItem onClick={async () => { await instance.logoutRedirect(); }}>
+              <ListItemIcon><LogoutIcon /></ListItemIcon>
+              <ListItemText>{t.logout || 'Se déconnecter'}</ListItemText>
+            </MenuItem>
+          ) : (
+            <MenuItem disabled>Non connecté</MenuItem>
+          )}
         </Menu>
         <Menu
           anchorEl={langMenuAnchor}
