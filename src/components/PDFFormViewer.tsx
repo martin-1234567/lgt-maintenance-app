@@ -149,6 +149,15 @@ const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
       <Box>
         <Typography color="error">{error}</Typography>
         <Button onClick={onBack}>Retour</Button>
+        <Box mt={2}>
+          <iframe
+            src={url}
+            title="Aperçu PDF (fallback)"
+            width="100%"
+            height="800px"
+            style={{ border: 'none' }}
+          />
+        </Box>
       </Box>
     );
   }
