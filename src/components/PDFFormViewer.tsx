@@ -204,56 +204,35 @@ const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
 
   return (
     <Box>
-      <Box mb={2}>
-        <Typography variant="h6" gutterBottom>
-          Champs du formulaire
-        </Typography>
-        {formFields.map((field) => (
-          <TextField
-            key={field.name}
-            label={field.name}
-            value={field.value}
-            onChange={(e) => handleFieldChange(field.name, e.target.value)}
-            fullWidth
-            margin="normal"
-            variant="outlined"
-          />
-        ))}
-      </Box>
-
-      <Box mb={2}>
-        <Paper elevation={3} sx={{ p: 2 }}>
-          <Document file={pdfData || url}>
-            <Page pageNumber={1} />
-          </Document>
-        </Paper>
-      </Box>
-
-      <Box display="flex" gap={2} justifyContent="flex-end">
-        <Button
-          variant="outlined"
-          onClick={onBack}
-          disabled={savingPdf}
-        >
-          Retour
-        </Button>
+      <iframe
+        src={url}
+        title="Aperçu PDF"
+        width="100%"
+        height="800px"
+        style={{ border: 'none' }}
+      />
+      <Box display="flex" gap={2} justifyContent="flex-end" mt={2}>
+        <Button variant="outlined" onClick={onBack} disabled={saving}>Retour</Button>
         <Button
           variant="contained"
           color="primary"
-          onClick={handleSave}
-          disabled={savingPdf}
+          disabled={saving}
+          onClick={async () => {
+            if (onStatusChange) await onStatusChange('en cours');
+            if (onSave) await onSave(null, 'en cours');
+          }}
         >
-          {savingPdf ? <CircularProgress size={24} /> : 'Sauvegarder'}
+          Sauvegarder
         </Button>
         {status !== 'terminé' && (
           <Button
             variant="contained"
             color="success"
+            disabled={saving}
             onClick={async () => {
-              await onStatusChange('terminé');
-              await handleSave();
+              if (onStatusChange) await onStatusChange('terminé');
+              if (onSave) await onSave(null, 'terminé');
             }}
-            disabled={savingPdf}
           >
             Terminer
           </Button>
