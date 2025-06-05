@@ -521,6 +521,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   const [lang, setLang] = useState<'fr' | 'en'>('fr');
   const t = translations[lang];
   const isMobile = useMediaQuery('(max-width:600px)');
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   // Gestion des événements tactiles (swipe horizontal)
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
@@ -1167,6 +1168,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                 }}
                 onBack={() => setShowPdf({operationId: null, type: undefined})}
                 type="tracabilite"
+                accessToken={accessToken || undefined}
               />
             </DialogContent>
           </Dialog>
