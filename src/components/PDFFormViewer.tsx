@@ -13,8 +13,29 @@ interface PDFFormViewerProps {
   type: string;
 }
 
+// Génère une URL d'embed SharePoint à partir de l'ID et du nom du fichier
+function getSharePointEmbedUrl(url: string, fileId: string): string {
+  // Extrait le nom du fichier depuis l'URL
+  let fileName = '';
+  try {
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname.split('/');
+    fileName = pathParts[pathParts.length - 1];
+  } catch {
+    fileName = '';
+  }
+  // Extrait le site SharePoint
+  const match = url.match(/https:\/\/(.*?sharepoint\.com\/sites\/[^/]+)/);
+  const siteUrl = match ? match[1] : '';
+  if (siteUrl && fileId && fileName) {
+    return `https://${siteUrl}/_layouts/15/Doc.aspx?sourcedoc={${fileId}}&file=${encodeURIComponent(fileName)}&action=embedview`;
+  }
+  return url;
+}
+
 const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
   url,
+  fileId,
   onSave,
   status,
   onStatusChange,
@@ -22,10 +43,14 @@ const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
   onBack,
   type
 }) => {
+  // Si c'est un PDF SharePoint, on génère l'URL d'embed
+  const isSharePoint = url.includes('sharepoint.com');
+  const embedUrl = isSharePoint ? getSharePointEmbedUrl(url, fileId) : url;
+
   return (
     <Box>
       <iframe
-        src={url}
+        src={embedUrl}
         title="Aperçu PDF"
         width="100%"
         height="800px"
