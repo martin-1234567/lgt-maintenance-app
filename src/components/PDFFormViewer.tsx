@@ -3,13 +3,11 @@ import { Box, Button } from '@mui/material';
 
 interface PDFFormViewerProps {
   url: string;
-  fileId: string;
   onSave: (data: Uint8Array | null, newStatus: string) => Promise<void>;
   status: string;
   onStatusChange: (newStatus: string) => Promise<void>;
   saving: boolean;
   onBack: () => void;
-  accessToken?: string;
   type: string;
 }
 

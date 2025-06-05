@@ -272,7 +272,6 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
           objectUrl ? (
             <PDFFormViewer
               url={objectUrl}
-              fileId={(objectUrl && objectUrl.split('/items/')[1]?.split('/')[0]) || ''}
               status={currentStatus === 'terminé' ? 'terminé' : 'en cours'}
               onStatusChange={async (_newStatus) => {}}
               saving={saving}
@@ -286,7 +285,6 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
                 }
               }}
               onBack={onBack}
-              accessToken={accessToken || undefined}
               type={type}
             />
           ) : (
@@ -1153,7 +1151,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             <DialogContent sx={{ p: 0 }}>
               <PDFFormViewer
                 url={record.pdfUrl}
-                fileId={record.pdfUrl.split('/items/')[1]?.split('/')[0] || ''}
                 status={record.status === 'terminé' ? 'terminé' : 'en cours'}
                 onStatusChange={async (_newStatus) => {}}
                 saving={false}
@@ -1168,7 +1165,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
                 }}
                 onBack={() => setShowPdf({operationId: null, type: undefined})}
                 type="tracabilite"
-                accessToken={accessToken || undefined}
               />
             </DialogContent>
           </Dialog>
