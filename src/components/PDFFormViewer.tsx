@@ -166,7 +166,7 @@ const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
     return (
       <Box>
         <iframe
-          src={url}
+          src={pdfData || url}
           title="Fiche de traçabilité"
           width="100%"
           height="800px"

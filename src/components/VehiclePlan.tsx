@@ -698,11 +698,12 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
           );
           if (file) {
-            // Générer le nom de la copie : <IDFichierBase>-YYYYMMDDHHmmss.pdf
+            // Générer le nom de la copie : <NomFichierBase>-YYYYMMDDHHmmss.pdf
             const now = new Date();
             const pad = (n: number) => n.toString().padStart(2, '0');
             const dateStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-            const newFileName = `${file.id}-${dateStr}.pdf`;
+            const baseFileName = file.name.replace('.pdf', '');
+            const newFileName = `${baseFileName}-${dateStr}.pdf`;
             // Copier le fichier
             const copiedFile = await maintenanceService.copyFile(file.id, SHAREPOINT_FOLDER_ID, newFileName);
             console.log('Lien downloadUrl de la copie retourné par Graph :', copiedFile['@microsoft.graph.downloadUrl']);
