@@ -1060,6 +1060,16 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     setNewOpName('');
   };
 
+  // Ajoute une opération vide au formulaire d'ajout de système
+  const handleAddOperationField = () => {
+    setNewSysOps([...newSysOps, { id: Date.now().toString(), name: '' }]);
+  };
+
+  // Modifie le nom d'une opération dans le formulaire d'ajout de système
+  const handleChangeOperation = (idx: number, value: string) => {
+    setNewSysOps(ops => ops.map((op, i) => i === idx ? { ...op, name: value } : op));
+  };
+
   // Ajout d'un useEffect pour charger tous les enregistrements au démarrage
   useEffect(() => {
     const loadAllRecords = async () => {
@@ -1463,6 +1473,34 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           <Button variant="outlined" sx={{ ml: 2 }} onClick={() => setShowAddSystemForm(v => !v)} size="small">
             Ajouter un système
           </Button>
+          {showAddSystemForm && (
+            <Paper sx={{ p: 2, mt: 2, mb: 2, maxWidth: 400 }} elevation={3}>
+              <Typography variant="h6" sx={{ mb: 2 }}>Nouveau système</Typography>
+              <TextField
+                label="Nom du système"
+                value={newSysName || ''}
+                onChange={e => setNewSysName(e.target.value)}
+                fullWidth
+                sx={{ mb: 2 }}
+              />
+              <Typography variant="subtitle1" sx={{ mb: 1 }}>Opérations</Typography>
+              {(newSysOps || []).map((op, idx) => (
+                <TextField
+                  key={op.id}
+                  label={`Opération ${idx + 1}`}
+                  value={op.name}
+                  onChange={e => handleChangeOperation(idx, e.target.value)}
+                  fullWidth
+                  sx={{ mb: 1 }}
+                />
+              ))}
+              <Button onClick={handleAddOperationField} size="small" sx={{ mb: 2 }}>Ajouter une opération</Button>
+              <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                <Button variant="contained" color="primary" onClick={handleSaveNewSystem}>Valider</Button>
+                <Button variant="outlined" color="secondary" onClick={() => setShowAddSystemForm(false)}>Annuler</Button>
+              </Box>
+            </Paper>
+          )}
         </Box>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
           <Typography
