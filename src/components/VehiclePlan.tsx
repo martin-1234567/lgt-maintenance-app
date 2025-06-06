@@ -1412,7 +1412,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
         <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Consistance : {selectedConsistency}</Typography>
         <Typography variant="h6" sx={{ mb: 3, textAlign: 'center' }}>Choisissez un véhicule</Typography>
         <FormControl fullWidth>
-          <InputLabel id="vehicle-select-label">Véhicule</InputLabel>
+          <InputLabel id="vehicle-select-label" shrink>Véhicule</InputLabel>
           <Select
             labelId="vehicle-select-label"
             value={selectedVehicle ? String((selectedVehicle as Vehicle).id) : ''}
@@ -1449,7 +1449,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             Consistance : {selectedConsistency}
           </Typography>
           <FormControl sx={{ minWidth: 180, ml: 2 }} size="small" fullWidth={isMobile}>
-            <InputLabel id="vehicle-select-label-main">Véhicule</InputLabel>
+            <InputLabel id="vehicle-select-label-main" shrink>Véhicule</InputLabel>
             <Select
               labelId="vehicle-select-label-main"
               value={selectedVehicle ? String((selectedVehicle as Vehicle).id) : ''}
