@@ -1411,8 +1411,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
       <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
         <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Consistance : {selectedConsistency}</Typography>
         <Typography variant="h6" sx={{ mb: 3, textAlign: 'center' }}>Choisissez un véhicule</Typography>
-        <FormControl fullWidth>
-          <InputLabel id="vehicle-select-label" shrink>Véhicule</InputLabel>
+        <FormControl fullWidth variant="outlined">
+          <InputLabel id="vehicle-select-label" shrink variant="outlined">Véhicule</InputLabel>
           <Select
             labelId="vehicle-select-label"
             value={selectedVehicle ? String((selectedVehicle as Vehicle).id) : ''}
@@ -1421,6 +1421,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
               const veh = VEHICLES.find((v) => v.id === Number(e.target.value));
               if (veh) setSelectedVehicle(veh);
             }}
+            variant="outlined"
           >
             {VEHICLES.map((veh) => (
               <MenuItem key={veh.id} value={String(veh.id)}>{veh.name}</MenuItem>
