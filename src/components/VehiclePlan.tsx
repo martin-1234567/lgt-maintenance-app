@@ -1143,6 +1143,74 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     }
   };
 
+  const handleCreateRecord = async (operationId: string) => {
+    if (!selectedVehicle || !selectedConsistency) return;
+
+    try {
+      const operation = systems
+        .find(s => s.operations.some(o => o.id === operationId))
+        ?.operations.find(o => o.id === operationId);
+
+      if (!operation) {
+        throw new Error('Opération non trouvée');
+      }
+
+      // Créer l'enregistrement
+      const newRecord = await maintenanceService.createRecord(
+        selectedVehicle.id,
+        selectedConsistency,
+        operationId,
+        operation.name
+      );
+
+      // Créer une copie de la fiche de traçabilité
+      const system = systems.find(s => s.operations.some(o => o.id === operationId));
+      if (system) {
+        const formattedSystemName = formatSystemName(system.name);
+        const sourceFileName = `FT-LGT-${formattedSystemName}.pdf`;
+        const newFileName = `FT-LGT-${formattedSystemName}-${newRecord.id}.pdf`;
+
+        // Copier le fichier
+        await maintenanceService.copyFile(
+          'ESSAI OUTILS',
+          sourceFileName,
+          'ESSAI OUTILS',
+          newFileName
+        );
+
+        // Mettre à jour l'enregistrement avec l'URL du nouveau fichier
+        const fileInfo = await maintenanceService.getFileInfo('ESSAI OUTILS', newFileName);
+        if (fileInfo) {
+          await maintenanceService.updateRecord(newRecord.id, {
+            pdfUrl: fileInfo.webUrl
+          });
+        }
+      }
+
+      // Mettre à jour l'état local
+      setRecordsByConsistency(prev => ({
+        ...prev,
+        [selectedConsistency]: {
+          ...prev[selectedConsistency],
+          [selectedVehicle.id]: [
+            ...(prev[selectedConsistency]?.[selectedVehicle.id] || []),
+            newRecord
+          ]
+        }
+      }));
+
+      // Afficher le PDF
+      setShowPdf({
+        operationId,
+        type: 'tracabilite',
+        recordId: newRecord.id
+      });
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'enregistrement:', error);
+      alert('Erreur lors de la création de l\'enregistrement');
+    }
+  };
+
   // --- Affichage de la modale PDF (protocole ou traçabilité) si demandée ---
   if (showPdf.operationId && showPdf.type) {
     // Recherche dans tous les enregistrements de toutes les consistances et véhicules
@@ -1156,37 +1224,33 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
 
     // --- OUVERTURE FICHE DE TRAÇABILITÉ ---
     if (showPdf.type === 'tracabilite') {
-      // 1. Si la copie existe (pdfUrl), on l'ouvre avec PDFFormViewer pour édition directe
       if (record?.pdfUrl) {
-        console.log('URL PDF à afficher:', record.pdfUrl);
         return (
-          <Dialog open onClose={() => setShowPdf({operationId: null, type: undefined})} maxWidth="xl" fullWidth>
-            <DialogTitle>
-              <Button onClick={() => setShowPdf({operationId: null, type: undefined})} variant="outlined">Fermer</Button>
-            </DialogTitle>
-            <DialogContent sx={{ p: 0 }}>
-              <PDFFormViewer
-                url={record.pdfUrl}
-                status={record.status === 'terminé' ? 'terminé' : 'en cours'}
-                onStatusChange={async (_newStatus) => {}}
-                saving={false}
-                onSave={async (data, newStatus) => {
-                  if (data && record.pdfUrl) {
-                    const fileId = record.pdfUrl.split('/items/')[1]?.split('/')[0];
-                    if (fileId) {
-                      const maintenanceService = MaintenanceService.getInstance();
-                      await maintenanceService.updatePdfFile(fileId, data);
-                    }
+          <PdfViewerSharepoint
+            operationCode={showPdf.operationId}
+            type="tracabilite"
+            onBack={() => setShowPdf({operationId: null, type: undefined})}
+            systems={systems}
+            allowStatusChange={true}
+            recordId={showPdf.recordId}
+            currentStatus={record?.status}
+            setStatus={async (newStatus) => {
+              if (record) {
+                await maintenanceService.updateRecord(record.id, { status: newStatus });
+                setRecordsByConsistency(prev => ({
+                  ...prev,
+                  [record.consistency]: {
+                    ...prev[record.consistency],
+                    [record.vehicleId]: prev[record.consistency][record.vehicleId].map(r =>
+                      r.id === record.id ? { ...r, status: newStatus } : r
+                    )
                   }
-                }}
-                onBack={() => setShowPdf({operationId: null, type: undefined})}
-                type="tracabilite"
-              />
-            </DialogContent>
-          </Dialog>
+                }));
+              }
+            }}
+          />
         );
       }
-      // Si rien trouvé, fallback ou message d'erreur
       return (
         <Dialog open onClose={() => setShowPdf({operationId: null, type: undefined})}>
           <DialogTitle>Fiche de traçabilité non disponible</DialogTitle>
@@ -1202,11 +1266,9 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
 
     // --- OUVERTURE PROTOCOLE ---
     if (showPdf.type === 'protocole') {
-      // Recherche du système et de l'opération
       const system = systems.find((s: System) => s.operations.some((o: { id: string }) => o.id === showPdf.operationId));
       const operation = system?.operations.find((o: { id: string }) => o.id === showPdf.operationId);
       if (operation) {
-        // On utilise PdfViewerSharepoint pour ouvrir le protocole
         return (
           <PdfViewerSharepoint
             operationCode={showPdf.operationId}
@@ -1218,7 +1280,6 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
           />
         );
       }
-      // Si rien trouvé
       return (
         <Dialog open onClose={() => setShowPdf({operationId: null, type: undefined})}>
           <DialogTitle>Protocole non disponible</DialogTitle>
