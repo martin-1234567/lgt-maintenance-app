@@ -166,14 +166,8 @@ export class MaintenanceService {
   public async copyFile(sourceFileId: string, destinationFolderId: string, newFileName: string): Promise<CopyFileResponse> {
     try {
       const headers = await this.getHeaders();
-      console.log('[DEBUG] Headers envoyés pour la copie:', headers);
-      if (headers && headers.Authorization) {
-        console.log('[DEBUG] Authorization header:', headers.Authorization);
-      } else {
-        console.warn('[DEBUG] Pas de header Authorization trouvé !');
-      }
-      
-      // Préparer le corps de la requête pour la copie
+      const url = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${sourceFileId}/copy`;
+      console.log('[DEBUG] URL appelée pour la copie:', url);
       const copyRequestBody = {
         parentReference: {
           driveId: SHAREPOINT_DRIVE_ID,
@@ -181,13 +175,9 @@ export class MaintenanceService {
         },
         name: newFileName
       };
-
-      // Lancer la copie
-      const url = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${sourceFileId}/copy`;
-      console.log('[DEBUG] URL appelée pour la copie:', url);
       console.log('[DEBUG] Corps de la requête copyFile:', copyRequestBody);
       console.log('[DEBUG] Headers envoyés pour la copie:', headers);
-      const copyResponse = await axios.post(
+      await axios.post(
         url,
         copyRequestBody,
         { 
@@ -198,27 +188,15 @@ export class MaintenanceService {
           }
         }
       );
-
-      // La copie est asynchrone, nous devons attendre qu'elle soit terminée
-      const monitorUrl = copyResponse.headers['location'];
-      let copyStatus = 'inProgress';
-      let copiedFile: CopyFileResponse | null = null;
-
-      while (copyStatus === 'inProgress') {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Attendre 1 seconde
-        const statusResponse = await axios.get<CopyStatusResponse>(monitorUrl, { headers });
-        copyStatus = statusResponse.data.status;
-        
-        if (copyStatus === 'completed' && statusResponse.data.resource) {
-          copiedFile = statusResponse.data.resource;
-          break;
-        }
-      }
-
+      // Attendre 3 secondes (la copie est asynchrone)
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Relister les fichiers du dossier pour retrouver la copie
+      const listUrl = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${destinationFolderId}/children`;
+      const listResponse = await axios.get(listUrl, { headers });
+      const copiedFile = (listResponse.data.value as any[]).find(f => f.name === newFileName);
       if (!copiedFile) {
-        throw new Error('La copie du fichier a échoué');
+        throw new Error('La copie du fichier a échoué (fichier non trouvé après délai)');
       }
-
       return copiedFile;
     } catch (error: any) {
       let message = 'Erreur lors de la copie du fichier';
