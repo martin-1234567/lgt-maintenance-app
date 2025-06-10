@@ -125,15 +125,16 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
 
   const handleStatusChange = async (newStatus: 'en cours' | 'terminé'): Promise<void> => {
     if (type !== 'tracabilite') return;
+    
+    // Action immédiate
+    if (setStatus) {
+      setStatus(newStatus);
+    }
+    
+    // Action asynchrone en arrière-plan
     setSaving(true);
     try {
-      // Mettre à jour le statut dans l'application
-      if (setStatus) {
-        await setStatus(newStatus);
-      }
-      // Attendre un peu pour s'assurer que les modifications sont sauvegardées
       await new Promise(resolve => setTimeout(resolve, 1000));
-      // (onBack sera appelé par le parent)
     } catch (err) {
       console.error('Erreur lors de la mise à jour du statut:', err);
       setError('Erreur lors de la mise à jour du statut');
@@ -1048,6 +1049,8 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
   };
   const handleSaveNewSystem = () => {
     if (!newSysName.trim() || newSysOps.length === 0) return;
+    
+    // Action immédiate
     setLocalSystems(prev => ({
       ...prev,
       [selectedConsistency]: [
@@ -1063,11 +1066,13 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
 
   // Ajoute une opération vide au formulaire d'ajout de système
   const handleAddOperationField = () => {
-    setNewSysOps([...newSysOps, { id: Date.now().toString(), name: '' }]);
+    // Action immédiate
+    setNewSysOps(prev => [...prev, { id: Date.now().toString(), name: '' }]);
   };
 
   // Modifie le nom d'une opération dans le formulaire d'ajout de système
   const handleChangeOperation = (idx: number, value: string) => {
+    // Action immédiate
     setNewSysOps(ops => ops.map((op, i) => i === idx ? { ...op, name: value } : op));
   };
 
