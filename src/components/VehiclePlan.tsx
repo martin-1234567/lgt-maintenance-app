@@ -1614,7 +1614,7 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
               width: '100%'
             }}
           >
-            Plan du véhicule {selectedVehicle?.name || 'Non sélectionné'}
+            {selectedVehicle?.name || 'Non sélectionné'}
           </Typography>
           <Button
             variant="contained"
