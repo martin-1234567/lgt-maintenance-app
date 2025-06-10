@@ -44,13 +44,13 @@ export class MaintenanceService {
     console.log('[DEBUG] AccessToken utilisé pour SharePoint:', token);
   }
 
-  private async getHeaders() {
+  private async getHeaders(): Promise<any> {
     if (!this.accessToken) {
-      throw new Error('Token d\'accès non disponible');
+      throw new Error('Token d\'accès non disponible. Veuillez vous reconnecter.');
     }
     return {
-      Authorization: `Bearer ${this.accessToken}`,
-      'Content-Type': 'application/json'
+      'Authorization': `Bearer ${this.accessToken}`,
+      'Accept': 'application/json'
     };
   }
 
@@ -210,8 +210,11 @@ export class MaintenanceService {
 
   public async updatePdfFile(fileId: string, pdfData: Uint8Array): Promise<void> {
     try {
+      console.log('Vérification du token d\'accès...');
       const headers = await this.getHeaders();
-      await axios.put(
+      
+      console.log('Envoi de la requête de mise à jour du PDF...');
+      const response = await axios.put(
         `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${fileId}/content`,
         pdfData,
         {
@@ -221,13 +224,25 @@ export class MaintenanceService {
           }
         }
       );
-    } catch (error: any) {
-      let message = 'Erreur lors de la mise à jour du PDF sur SharePoint';
-      if (error.response && error.response.data && error.response.data.error) {
-        message += ` : ${error.response.data.error.message}`;
+      
+      console.log('Réponse de SharePoint:', response.status);
+      if (response.status !== 200 && response.status !== 201) {
+        throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`);
       }
-      console.error(message, error);
-      throw new Error(message);
+    } catch (error: any) {
+      console.error('Erreur détaillée lors de la mise à jour du PDF:', error);
+      
+      if (error.response) {
+        // Erreur de réponse du serveur
+        const errorMessage = error.response.data?.error?.message || error.response.statusText;
+        throw new Error(`Erreur SharePoint (${error.response.status}): ${errorMessage}`);
+      } else if (error.request) {
+        // Pas de réponse reçue
+        throw new Error('Pas de réponse du serveur SharePoint. Vérifiez votre connexion internet.');
+      } else {
+        // Erreur lors de la configuration de la requête
+        throw new Error(`Erreur lors de la mise à jour du PDF: ${error.message}`);
+      }
     }
   }
 } 

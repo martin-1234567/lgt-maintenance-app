@@ -1,5 +1,7 @@
 import React from 'react';
 import { PDFDocument, rgb, PDFTextField } from 'pdf-lib';
+import { MaintenanceService } from '../services/maintenanceService';
+import { Button } from '@mui/material';
 
 interface EditablePDFViewerProps {
   url: string;
@@ -52,15 +54,40 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, onSa
   const handleSave = async (newStatus: 'en cours' | 'terminé') => {
     setSavingPdf(true);
     try {
-      if (pdfData && fileId) {
-        // Upload du PDF modifié sur SharePoint
-        // (Appelle ici la méthode de ton service pour upload)
+      console.log('Début de la sauvegarde du PDF...');
+      let finalPdfData = pdfData;
+      if (pdfDoc) {
+        console.log('Sauvegarde du document PDF...');
+        finalPdfData = new Uint8Array(await pdfDoc.save());
+        setPdfData(finalPdfData);
       }
+      if (finalPdfData && fileId) {
+        console.log('Mise à jour du fichier sur SharePoint...');
+        const maintenanceService = MaintenanceService.getInstance();
+        try {
+          await maintenanceService.updatePdfFile(fileId, finalPdfData);
+          console.log('Fichier mis à jour avec succès');
+        } catch (error: any) {
+          console.error('Erreur détaillée lors de la mise à jour du PDF:', error);
+          throw new Error(`Erreur lors de la mise à jour du PDF: ${error.message || error}`);
+        }
+      } else {
+        console.warn('Pas de données PDF ou ID de fichier manquant');
+      }
+      
+      console.log('Mise à jour du statut...');
       await onStatusChange(newStatus);
-      if (onSave) await onSave(pdfData, newStatus);
+      
+      if (onSave) {
+        console.log('Appel de la fonction onSave...');
+        await onSave(finalPdfData, newStatus);
+      }
+      
+      console.log('Sauvegarde terminée avec succès');
       onBack();
-    } catch (err) {
-      alert('Erreur lors de la sauvegarde du PDF : ' + err);
+    } catch (err: any) {
+      console.error('Erreur complète lors de la sauvegarde:', err);
+      alert(`Erreur lors de la sauvegarde du PDF : ${err.message || err}`);
     } finally {
       setSavingPdf(false);
     }
@@ -88,13 +115,34 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, onSa
         )}
       </div>
       {pdfData && (
-        <iframe
-          src={URL.createObjectURL(new Blob([pdfData], { type: 'application/pdf' }))}
-          title="PDF modifiable"
-          width="100%"
-          height="700px"
-          style={{ border: 'none', background: '#fff' }}
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div style={{ padding: '8px', background: '#fff', borderBottom: '1px solid #ddd' }}>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              onClick={() => handleSave('en cours')}
+              disabled={savingPdf}
+              style={{ marginRight: '8px' }}
+            >
+              {savingPdf ? 'Sauvegarde...' : 'Sauvegarder en cours'}
+            </Button>
+            <Button 
+              variant="contained" 
+              color="success" 
+              onClick={() => handleSave('terminé')}
+              disabled={savingPdf}
+            >
+              {savingPdf ? 'Sauvegarde...' : 'Terminer et sauvegarder'}
+            </Button>
+          </div>
+          <iframe
+            src={URL.createObjectURL(new Blob([pdfData], { type: 'application/pdf' }))}
+            title="PDF modifiable"
+            width="100%"
+            height="100%"
+            style={{ border: 'none', background: '#fff' }}
+          />
+        </div>
       )}
       {!pdfData && <div style={{ color: '#fff', textAlign: 'center', marginTop: 40 }}>Chargement du PDF…</div>}
     </div>
