@@ -1143,72 +1143,93 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
     }
   };
 
-  const handleCreateRecord = async (operationId: string) => {
+  const formatSystemName = (name: string): string => name.replace(/\./g, '-');
+
+  const handleCreateRecord = async (operationId: string, type: 'tracabilite' | 'protocole') => {
     if (!selectedVehicle || !selectedConsistency) return;
 
-    try {
-      const operation = systems
-        .find(s => s.operations.some(o => o.id === operationId))
-        ?.operations.find(o => o.id === operationId);
+    const operation = systems
+      .find(s => s.operations.some(o => o.id === operationId))
+      ?.operations.find(o => o.id === operationId);
 
-      if (!operation) {
-        throw new Error('Opération non trouvée');
-      }
-
-      // Créer l'enregistrement
-      const newRecord = await maintenanceService.createRecord(
-        selectedVehicle.id,
-        selectedConsistency,
-        operationId,
-        operation.name
-      );
-
-      // Créer une copie de la fiche de traçabilité
-      const system = systems.find(s => s.operations.some(o => o.id === operationId));
-      if (system) {
-        const formattedSystemName = formatSystemName(system.name);
-        const sourceFileName = `FT-LGT-${formattedSystemName}.pdf`;
-        const newFileName = `FT-LGT-${formattedSystemName}-${newRecord.id}.pdf`;
-
-        // Copier le fichier
-        await maintenanceService.copyFile(
-          'ESSAI OUTILS',
-          sourceFileName,
-          'ESSAI OUTILS',
-          newFileName
-        );
-
-        // Mettre à jour l'enregistrement avec l'URL du nouveau fichier
-        const fileInfo = await maintenanceService.getFileInfo('ESSAI OUTILS', newFileName);
-        if (fileInfo) {
-          await maintenanceService.updateRecord(newRecord.id, {
-            pdfUrl: fileInfo.webUrl
-          });
-        }
-      }
-
-      // Mettre à jour l'état local
-      setRecordsByConsistency(prev => ({
-        ...prev,
-        [selectedConsistency]: {
-          ...prev[selectedConsistency],
-          [selectedVehicle.id]: [
-            ...(prev[selectedConsistency]?.[selectedVehicle.id] || []),
-            newRecord
-          ]
-        }
-      }));
-
-      // Afficher le PDF
-      setShowPdf({
-        operationId,
-        type: 'tracabilite',
-        recordId: newRecord.id
-      });
-    } catch (error) {
-      console.error('Erreur lors de la création de l\'enregistrement:', error);
-      alert('Erreur lors de la création de l\'enregistrement');
+    if (!operation) {
+      throw new Error('Opération non trouvée');
     }
+
+    // Déclare system une seule fois ici
+    const system = systems.find(s => s.operations.some(o => o.id === operation.id));
+
+    let pdfUrl: string | undefined = undefined;
+    if (type === 'tracabilite') {
+      try {
+        const token = await instance.acquireTokenSilent({
+          scopes: [
+            'Files.Read.All',
+            'Sites.Read.All',
+            'Files.ReadWrite.All',
+            'Sites.ReadWrite.All'
+          ],
+          account: accounts[0],
+        });
+        maintenanceService.setAccessToken(token.accessToken);
+        // Recherche du fichier de traçabilité de base
+        const SHAREPOINT_SITE_ID = 'arlingtonfleetfrance.sharepoint.com,3d42766f-7bce-4b8e-92e0-70272ae2b95e,cfa621f3-5013-433c-9d14-3c519f11bb8d';
+        const SHAREPOINT_DRIVE_ID = 'b!b3ZCPc57jkuS4HAnKuK5XvMhps8TUDxDnRQ8UZ8Ru426aMo8mBCBTrOSBU5EbQE4';
+        const SHAREPOINT_FOLDER_ID = '01UIJT6YLQOURHAQCBSRB2FWB5PX6OZRJG';
+        const formattedSystemName = system ? formatSystemName(system.name) : operation.id;
+        const traceabilityFileName = `FT-LGT-${formattedSystemName}.pdf`;
+        // Récupérer la liste des fichiers du dossier
+        const res = await fetch(
+          `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drive/items/${SHAREPOINT_FOLDER_ID}/children`,
+          { headers: { Authorization: `Bearer ${token.accessToken}` } }
+        );
+        const data = await res.json();
+        const file = (data.value as any[]).find((f: any) =>
+          f.parentReference && f.parentReference.path && f.parentReference.path.includes('ESSAI OUTILS') &&
+          f.name.trim().toLowerCase() === traceabilityFileName.trim().toLowerCase()
+        );
+        if (file) {
+          // Générer le nom de la copie : <NomFichierBase>-YYYYMMDDHHmmss.pdf
+          const now = new Date();
+          const pad = (n: number) => n.toString().padStart(2, '0');
+          const dateStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+          const newFileName = `FT-LGT-${formattedSystemName}-${dateStr}.pdf`;
+          // Copier le fichier
+          const copiedFile = await maintenanceService.copyFile(file.id, SHAREPOINT_FOLDER_ID, newFileName);
+          pdfUrl = copiedFile['@microsoft.graph.downloadUrl'];
+        }
+      } catch (err) {
+        console.error('Erreur lors de la copie du PDF de traçabilité :', err);
+      }
+    }
+
+    const newRecord: MaintenanceRecord = {
+      id: Date.now().toString(),
+      vehicleId: selectedVehicle.id,
+      systemId: system?.id || '',
+      operationId: operation.id,
+      position: { x: 0, y: 0 },
+      timestamp: new Date(),
+      comment: '',
+      user: '',
+      status: 'non commencé',
+      pdfUrl
+    };
+
+    const updatedRecords = [...(recordsByConsistency[selectedConsistency]?.[selectedVehicle.id] || []), newRecord];
+    await maintenanceService.saveMaintenanceRecords(selectedConsistency, selectedVehicle.id, updatedRecords);
+    setRecordsByConsistency(prev => ({
+      ...prev,
+      [selectedConsistency]: {
+        ...prev[selectedConsistency],
+        [selectedVehicle.id]: updatedRecords
+      }
+    }));
+    setShowPdf({
+      operationId,
+      type: 'tracabilite',
+      recordId: newRecord.id
+    });
   };
 
   // --- Affichage de la modale PDF (protocole ou traçabilité) si demandée ---
@@ -1236,16 +1257,25 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
             currentStatus={record?.status}
             setStatus={async (newStatus) => {
               if (record) {
-                await maintenanceService.updateRecord(record.id, { status: newStatus });
-                setRecordsByConsistency(prev => ({
-                  ...prev,
-                  [record.consistency]: {
-                    ...prev[record.consistency],
-                    [record.vehicleId]: prev[record.consistency][record.vehicleId].map(r =>
-                      r.id === record.id ? { ...r, status: newStatus } : r
-                    )
-                  }
-                }));
+                setRecordsByConsistency((prev: Record<string, Record<number, MaintenanceRecord[]>>) => {
+                  const prevCons = prev[record.consistency] || {};
+                  const prevVeh = prevCons[record.vehicleId] || [];
+                  const updated: Record<string, Record<number, MaintenanceRecord[]>> = {
+                    ...prev,
+                    [record.consistency]: {
+                      ...prevCons,
+                      [record.vehicleId]: prevVeh.map(r =>
+                        r.id === record.id ? { ...r, status: newStatus } : r
+                      )
+                    }
+                  };
+                  maintenanceService.saveMaintenanceRecords(
+                    record.consistency,
+                    record.vehicleId,
+                    (updated as Record<string, Record<number, MaintenanceRecord[]>>)[record.consistency][record.vehicleId]
+                  );
+                  return updated;
+                });
               }
             }}
           />
