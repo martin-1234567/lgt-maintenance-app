@@ -167,6 +167,11 @@ export class MaintenanceService {
     try {
       const headers = await this.getHeaders();
       console.log('[DEBUG] Headers envoyés pour la copie:', headers);
+      if (headers && headers.Authorization) {
+        console.log('[DEBUG] Authorization header:', headers.Authorization);
+      } else {
+        console.warn('[DEBUG] Pas de header Authorization trouvé !');
+      }
       
       // Préparer le corps de la requête pour la copie
       const copyRequestBody = {
