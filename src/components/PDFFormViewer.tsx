@@ -56,37 +56,6 @@ const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
       ) : (
         <Box sx={{ textAlign: 'center', mt: 4 }}>Chargement du PDF...</Box>
       )}
-      <Box display="flex" gap={2} justifyContent="flex-end" mt={2}>
-        <Button variant="outlined" onClick={onBack} disabled={saving}>Retour</Button>
-        {type === 'tracabilite' && (
-          <>
-            <Button
-              variant="contained"
-              color="primary"
-              disabled={saving}
-              onClick={async () => {
-                if (onStatusChange) await onStatusChange('en cours');
-                if (onSave) await onSave(null, 'en cours');
-              }}
-            >
-              Sauvegarder
-            </Button>
-            {status !== 'terminé' && (
-              <Button
-                variant="contained"
-                color="success"
-                disabled={saving}
-                onClick={async () => {
-                  if (onStatusChange) await onStatusChange('terminé');
-                  if (onSave) await onSave(null, 'terminé');
-                }}
-              >
-                Terminer
-              </Button>
-            )}
-          </>
-        )}
-      </Box>
     </Box>
   );
 };
