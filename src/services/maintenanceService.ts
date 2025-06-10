@@ -192,7 +192,7 @@ export class MaintenanceService {
       await new Promise(resolve => setTimeout(resolve, 3000));
       // Relister les fichiers du dossier pour retrouver la copie
       const listUrl = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${destinationFolderId}/children`;
-      const listResponse = await axios.get(listUrl, { headers });
+      const listResponse = await axios.get<SharePointResponse>(listUrl, { headers });
       const copiedFile = (listResponse.data.value as any[]).find(f => f.name === newFileName);
       if (!copiedFile) {
         throw new Error('La copie du fichier a échoué (fichier non trouvé après délai)');
