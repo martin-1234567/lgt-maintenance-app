@@ -183,8 +183,12 @@ export class MaintenanceService {
       };
 
       // Lancer la copie
+      const url = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${sourceFileId}/copy`;
+      console.log('[DEBUG] URL appelée pour la copie:', url);
+      console.log('[DEBUG] Corps de la requête copyFile:', copyRequestBody);
+      console.log('[DEBUG] Headers envoyés pour la copie:', headers);
       const copyResponse = await axios.post(
-        `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${sourceFileId}/copy`,
+        url,
         copyRequestBody,
         { 
           headers: { 
