@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Button } from '@mui/material';
 
 interface PDFFormViewerProps {
@@ -20,15 +20,42 @@ const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
   onBack,
   type
 }) => {
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPdf = async () => {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        setPdfBlobUrl(blobUrl);
+      } catch (error) {
+        console.error('Erreur lors du chargement du PDF:', error);
+      }
+    };
+
+    fetchPdf();
+
+    return () => {
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl);
+      }
+    };
+  }, [url]);
+
   return (
     <Box>
-      <iframe
-        src={url}
-        title="Aperçu PDF"
-        width="100%"
-        height="800px"
-        style={{ border: 'none' }}
-      />
+      {pdfBlobUrl ? (
+        <iframe
+          src={pdfBlobUrl}
+          title="Aperçu PDF"
+          width="100%"
+          height="800px"
+          style={{ border: 'none' }}
+        />
+      ) : (
+        <Box sx={{ textAlign: 'center', mt: 4 }}>Chargement du PDF...</Box>
+      )}
       <Box display="flex" gap={2} justifyContent="flex-end" mt={2}>
         <Button variant="outlined" onClick={onBack} disabled={saving}>Retour</Button>
         {type === 'tracabilite' && (
