@@ -50,6 +50,7 @@ import { useSwipeable } from 'react-swipeable';
 import PDFFormViewer from './PDFFormViewer';
 // @ts-ignore
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.js?worker';
+import CloseIcon from '@mui/icons-material/Close';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.js`;
 
