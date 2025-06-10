@@ -463,14 +463,10 @@ function App() {
             <ListItemText>{t.language}</ListItemText>
           </MenuItem>
           <MenuItem onClick={handleVisualMenuOpen}>{t.visual}</MenuItem>
-          {accounts && accounts.length > 0 ? (
-            <MenuItem onClick={async () => { await instance.logoutRedirect(); }}>
-              <ListItemIcon><LogoutIcon /></ListItemIcon>
-              <ListItemText>{t.logout || 'Se déconnecter'}</ListItemText>
-            </MenuItem>
-          ) : (
-            <MenuItem disabled>Non connecté</MenuItem>
-          )}
+          <MenuItem onClick={async () => { await instance.logoutRedirect(); }}>
+            <ListItemIcon><LogoutIcon /></ListItemIcon>
+            <ListItemText>{t.logout || 'Se déconnecter'}</ListItemText>
+          </MenuItem>
         </Menu>
         <Menu
           anchorEl={langMenuAnchor}
@@ -596,6 +592,44 @@ function App() {
         }
       `} />
       {header}
+      {/* Menus contextuels réglages/langue/visuel, toujours présents */}
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleSettingsClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MenuItem onClick={handleLangMenuOpen}>
+          <ListItemIcon><LanguageIcon /></ListItemIcon>
+          <ListItemText>{t.language}</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleVisualMenuOpen}>{t.visual}</MenuItem>
+        <MenuItem onClick={async () => { await instance.logoutRedirect(); }}>
+          <ListItemIcon><LogoutIcon /></ListItemIcon>
+          <ListItemText>{t.logout || 'Se déconnecter'}</ListItemText>
+        </MenuItem>
+      </Menu>
+      <Menu
+        anchorEl={langMenuAnchor}
+        open={langMenuOpen}
+        onClose={handleLangMenuClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MenuItem selected={lang === 'fr'} onClick={() => handleLangChange('fr')}>Français</MenuItem>
+        <MenuItem selected={lang === 'en'} onClick={() => handleLangChange('en')}>English</MenuItem>
+      </Menu>
+      <Menu
+        anchorEl={visualMenuAnchor}
+        open={visualMenuOpen}
+        onClose={handleVisualMenuClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MenuItem selected={themeMode === 'light'} onClick={() => handleThemeChange('light')}>{t.lightMode}</MenuItem>
+        <MenuItem selected={themeMode === 'dark'} onClick={() => handleThemeChange('dark')}>{t.darkMode}</MenuItem>
+      </Menu>
       {isMobile ? (
         <PullToRefresh
           onRefresh={async () => {
