@@ -1,7 +1,7 @@
 import React from 'react';
 import { PDFDocument, rgb, PDFTextField } from 'pdf-lib';
 import { MaintenanceService } from '../services/maintenanceService';
-import { Button } from '@mui/material';
+import { Button, Snackbar, Alert } from '@mui/material';
 
 interface EditablePDFViewerProps {
   url: string;
@@ -19,27 +19,59 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, onSa
   const [loading, setLoading] = React.useState(false);
   const [savingPdf, setSavingPdf] = React.useState(false);
   const [pdfDoc, setPdfDoc] = React.useState<PDFDocument | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
+  const [lastSavedTime, setLastSavedTime] = React.useState<Date | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const autoSaveInterval = React.useRef<NodeJS.Timeout | null>(null);
 
   // Charger le PDF et extraire les champs de formulaire
   React.useEffect(() => {
     (async () => {
-      const arrayBuffer = await fetch(url).then(res => res.arrayBuffer());
-      const doc = await PDFDocument.load(arrayBuffer);
-      setPdfDoc(doc);
-      const form = doc.getForm();
-      const fields = form.getFields();
-      const fieldData = fields.map(f => {
-        const name = f.getName();
-        let value = '';
-        if (f instanceof PDFTextField) {
-          value = f.getText() || '';
-        }
-        return { name, value };
-      });
-      setFormFields(fieldData);
-      setPdfData(new Uint8Array(await doc.save()));
+      try {
+        const arrayBuffer = await fetch(url).then(res => res.arrayBuffer());
+        const doc = await PDFDocument.load(arrayBuffer);
+        setPdfDoc(doc);
+        const form = doc.getForm();
+        const fields = form.getFields();
+        const fieldData = fields.map(f => {
+          const name = f.getName();
+          let value = '';
+          if (f instanceof PDFTextField) {
+            value = f.getText() || '';
+          }
+          return { name, value };
+        });
+        setFormFields(fieldData);
+        setPdfData(new Uint8Array(await doc.save()));
+        setLastSavedTime(new Date());
+      } catch (err) {
+        setError('Erreur lors du chargement du PDF');
+        console.error(err);
+      }
     })();
+
+    // Nettoyer l'intervalle de sauvegarde automatique lors du démontage
+    return () => {
+      if (autoSaveInterval.current) {
+        clearInterval(autoSaveInterval.current);
+      }
+    };
   }, [url]);
+
+  // Configurer la sauvegarde automatique
+  React.useEffect(() => {
+    if (hasUnsavedChanges && fileId) {
+      autoSaveInterval.current = setInterval(async () => {
+        await handleAutoSave();
+      }, 30000); // Sauvegarde automatique toutes les 30 secondes
+    }
+
+    return () => {
+      if (autoSaveInterval.current) {
+        clearInterval(autoSaveInterval.current);
+      }
+    };
+  }, [hasUnsavedChanges, fileId]);
 
   // Mettre à jour la valeur d'un champ dans le PDF et dans le state
   const handleFieldChange = async (name: string, value: string) => {
@@ -49,6 +81,21 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, onSa
     field.setText(value);
     setFormFields(fields => fields.map(f => f.name === name ? { ...f, value } : f));
     setPdfData(new Uint8Array(await pdfDoc.save()));
+    setHasUnsavedChanges(true);
+  };
+
+  const handleAutoSave = async () => {
+    if (!hasUnsavedChanges || !fileId || !pdfData) return;
+    
+    try {
+      const maintenanceService = MaintenanceService.getInstance();
+      await maintenanceService.updatePdfFile(fileId, pdfData);
+      setHasUnsavedChanges(false);
+      setLastSavedTime(new Date());
+    } catch (err) {
+      console.error('Erreur lors de la sauvegarde automatique:', err);
+      setError('Erreur lors de la sauvegarde automatique');
+    }
   };
 
   const handleSave = async (newStatus: 'en cours' | 'terminé') => {
@@ -67,6 +114,8 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, onSa
         try {
           await maintenanceService.updatePdfFile(fileId, finalPdfData);
           console.log('Fichier mis à jour avec succès');
+          setHasUnsavedChanges(false);
+          setLastSavedTime(new Date());
         } catch (error: any) {
           console.error('Erreur détaillée lors de la mise à jour du PDF:', error);
           throw new Error(`Erreur lors de la mise à jour du PDF: ${error.message || error}`);
@@ -87,7 +136,7 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, onSa
       onBack();
     } catch (err: any) {
       console.error('Erreur complète lors de la sauvegarde:', err);
-      alert(`Erreur lors de la sauvegarde du PDF : ${err.message || err}`);
+      setError(`Erreur lors de la sauvegarde du PDF : ${err.message || err}`);
     } finally {
       setSavingPdf(false);
     }
@@ -116,24 +165,30 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, onSa
       </div>
       {pdfData && (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <div style={{ padding: '8px', background: '#fff', borderBottom: '1px solid #ddd' }}>
-            <Button 
-              variant="contained" 
-              color="primary" 
-              onClick={() => handleSave('en cours')}
-              disabled={savingPdf}
-              style={{ marginRight: '8px' }}
-            >
-              {savingPdf ? 'Sauvegarde...' : 'Sauvegarder en cours'}
-            </Button>
-            <Button 
-              variant="contained" 
-              color="success" 
-              onClick={() => handleSave('terminé')}
-              disabled={savingPdf}
-            >
-              {savingPdf ? 'Sauvegarde...' : 'Terminer et sauvegarder'}
-            </Button>
+          <div style={{ padding: '8px', background: '#fff', borderBottom: '1px solid #ddd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <Button 
+                variant="contained" 
+                color="primary" 
+                onClick={() => handleSave('en cours')}
+                disabled={savingPdf}
+                style={{ marginRight: '8px' }}
+              >
+                {savingPdf ? 'Sauvegarde...' : 'Sauvegarder en cours'}
+              </Button>
+              <Button 
+                variant="contained" 
+                color="success" 
+                onClick={() => handleSave('terminé')}
+                disabled={savingPdf}
+              >
+                {savingPdf ? 'Sauvegarde...' : 'Terminer et sauvegarder'}
+              </Button>
+            </div>
+            <div style={{ color: hasUnsavedChanges ? '#f44336' : '#4caf50', fontSize: '0.9rem' }}>
+              {hasUnsavedChanges ? 'Modifications non sauvegardées' : 
+               lastSavedTime ? `Dernière sauvegarde : ${lastSavedTime.toLocaleTimeString()}` : ''}
+            </div>
           </div>
           <iframe
             src={URL.createObjectURL(new Blob([pdfData], { type: 'application/pdf' }))}
@@ -145,6 +200,17 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, onSa
         </div>
       )}
       {!pdfData && <div style={{ color: '#fff', textAlign: 'center', marginTop: 40 }}>Chargement du PDF…</div>}
+      
+      <Snackbar 
+        open={!!error} 
+        autoHideDuration={6000} 
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };
