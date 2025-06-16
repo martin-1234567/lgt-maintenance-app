@@ -85,7 +85,9 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, onSa
   };
 
   const handleAutoSave = async () => {
+    console.log("entrer dans la fonction handle autosave");
     if (!hasUnsavedChanges || !fileId || !pdfData) return;
+    console.log("entrer dans le fonction handle autosave 2");
     
     try {
       const maintenanceService = MaintenanceService.getInstance();

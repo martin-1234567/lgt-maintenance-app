@@ -1939,7 +1939,9 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, onSa
   };
 
   const handleSave = async (newStatus: 'en cours' | 'terminé') => {
+    console.log("entrer dans handle save");
     setSavingPdf(true);
+    console.log("entrer dans handle save2");
     try {
       if (pdfData && fileId) {
         // Upload du PDF modifié sur SharePoint
