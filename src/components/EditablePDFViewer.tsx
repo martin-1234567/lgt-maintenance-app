@@ -6,6 +6,7 @@ import { Button, Snackbar, Alert } from '@mui/material';
 interface EditablePDFViewerProps {
   url: string;
   fileId?: string;
+  folderId?: string;
   onSave: (modifiedPdf: Uint8Array | null, newStatus: 'en cours' | 'terminé') => Promise<void>;
   status: 'en cours' | 'terminé';
   onStatusChange: (status: 'en cours' | 'terminé') => void;
@@ -13,7 +14,7 @@ interface EditablePDFViewerProps {
   onBack: () => void;
 }
 
-const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, onSave, status, onStatusChange, saving, onBack }) => {
+const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, folderId, onSave, status, onStatusChange, saving, onBack }) => {
   const [pdfData, setPdfData] = React.useState<Uint8Array | null>(null);
   const [formFields, setFormFields] = React.useState<{ name: string, value: string }[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -91,7 +92,13 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, onSa
     
     try {
       const maintenanceService = MaintenanceService.getInstance();
-      await maintenanceService.updatePdfFile(fileId, pdfData);
+      if (folderId) {
+        // Créer une nouvelle version pour la sauvegarde automatique
+        await maintenanceService.createNewPdfVersion(fileId, pdfData, folderId);
+      } else {
+        // Fallback vers l'ancienne méthode si pas de folderId
+        await maintenanceService.updatePdfFile(fileId, pdfData);
+      }
       setHasUnsavedChanges(false);
       setLastSavedTime(new Date());
     } catch (err) {
@@ -111,16 +118,25 @@ const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, onSa
         setPdfData(finalPdfData);
       }
       if (finalPdfData && fileId) {
-        console.log('Mise à jour du fichier sur SharePoint...');
+        console.log('Création d\'une nouvelle version du fichier sur SharePoint...');
         const maintenanceService = MaintenanceService.getInstance();
         try {
-          await maintenanceService.updatePdfFile(fileId, finalPdfData);
-          console.log('Fichier mis à jour avec succès');
-          setHasUnsavedChanges(false);
-          setLastSavedTime(new Date());
+          if (folderId) {
+            // Créer une nouvelle version du PDF
+            const result = await maintenanceService.createNewPdfVersion(fileId, finalPdfData, folderId);
+            console.log('Nouvelle version créée avec succès:', result);
+            setHasUnsavedChanges(false);
+            setLastSavedTime(new Date());
+          } else {
+            // Fallback vers l'ancienne méthode si pas de folderId
+            await maintenanceService.updatePdfFile(fileId, finalPdfData);
+            console.log('Fichier mis à jour avec succès');
+            setHasUnsavedChanges(false);
+            setLastSavedTime(new Date());
+          }
         } catch (error: any) {
-          console.error('Erreur détaillée lors de la mise à jour du PDF:', error);
-          throw new Error(`Erreur lors de la mise à jour du PDF: ${error.message || error}`);
+          console.error('Erreur détaillée lors de la création de la nouvelle version:', error);
+          throw new Error(`Erreur lors de la création de la nouvelle version: ${error.message || error}`);
         }
       } else {
         console.warn('Pas de données PDF ou ID de fichier manquant');

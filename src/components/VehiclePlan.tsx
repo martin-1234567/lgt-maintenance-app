@@ -282,7 +282,9 @@ function PdfViewerSharepoint({ operationCode, type, onBack, setStatus, currentSt
                   const fileId = objectUrl.split('/items/')[1]?.split('/')[0];
                   if (fileId) {
                     const maintenanceService = MaintenanceService.getInstance();
-                    await maintenanceService.updatePdfFile(fileId, data);
+                    // Utiliser la nouvelle méthode de création de version
+                    const SHAREPOINT_FOLDER_ID = '01UIJT6YLQOURHAQCBSRB2FWB5PX6OZRJG';
+                    await maintenanceService.createNewPdfVersion(fileId, data, SHAREPOINT_FOLDER_ID);
                   }
                 }
               }}
@@ -337,6 +339,7 @@ function ViewerModal({ url, onBack, recordId, setStatus, currentStatus }: Viewer
         <EditablePDFViewer
           url={url}
           fileId={url ? url.split('/items/')[1]?.split('/')[0] : undefined}
+          folderId="01UIJT6YLQOURHAQCBSRB2FWB5PX6OZRJG"
           status={currentStatus === 'terminé' ? 'terminé' : 'en cours'}
           onStatusChange={() => {}}
           saving={false}
@@ -1900,13 +1903,14 @@ const VehiclePlan: React.FC<{ systems: System[] }> = ({ systems }) => {
 interface EditablePDFViewerProps {
   url: string;
   fileId?: string; // Ajout de l'ID du fichier pour l'upload
+  folderId?: string; // Ajout de l'ID du dossier pour la création de nouvelle version
   onSave: (modifiedPdf: Uint8Array | null, newStatus: 'en cours' | 'terminé') => Promise<void>;
   status: 'en cours' | 'terminé';
   onStatusChange: (status: 'en cours' | 'terminé') => void;
   saving: boolean;
   onBack: () => void;
 }
-const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, onSave, status, onStatusChange, saving, onBack }) => {
+const EditablePDFViewer: React.FC<EditablePDFViewerProps> = ({ url, fileId, folderId, onSave, status, onStatusChange, saving, onBack }) => {
   const [pdfData, setPdfData] = React.useState<Uint8Array | null>(null);
   const [annotation, setAnnotation] = React.useState('');
   const [numPages, setNumPages] = React.useState<number | null>(null);

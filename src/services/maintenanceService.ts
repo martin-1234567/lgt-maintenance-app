@@ -21,6 +21,12 @@ interface CopyFileResponse {
   '@microsoft.graph.downloadUrl': string;
 }
 
+interface SharePointFileInfo {
+  name: string;
+  id: string;
+  '@microsoft.graph.downloadUrl': string;
+}
+
 interface CopyStatusResponse {
   status: 'inProgress' | 'completed' | 'failed';
   resource?: CopyFileResponse;
@@ -242,6 +248,73 @@ export class MaintenanceService {
       } else {
         // Erreur lors de la configuration de la requête
         throw new Error(`Erreur lors de la mise à jour du PDF: ${error.message}`);
+      }
+    }
+  }
+
+  public async createNewPdfVersion(fileId: string, pdfData: Uint8Array, folderId: string): Promise<{ newFileId: string, newDownloadUrl: string }> {
+    try {
+      console.log('Création d\'une nouvelle version du PDF...');
+      const headers = await this.getHeaders();
+      
+      // 1. Récupérer les informations du fichier original
+      const fileInfoResponse = await axios.get<SharePointFileInfo>(
+        `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${fileId}`,
+        { headers }
+      );
+      
+      const originalFileName = fileInfoResponse.data.name;
+      const baseFileName = originalFileName.replace('.pdf', '');
+      
+      // 2. Générer un nouveau nom de fichier avec timestamp
+      const now = new Date();
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const dateStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      const newFileName = `${baseFileName}-${dateStr}.pdf`;
+      
+      console.log('Nouveau nom de fichier:', newFileName);
+      
+      // 3. Créer le nouveau fichier avec les données modifiées
+      const createResponse = await axios.put<SharePointFileInfo>(
+        `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${folderId}:/${newFileName}:/content`,
+        pdfData,
+        {
+          headers: {
+            ...headers,
+            'Content-Type': 'application/pdf'
+          }
+        }
+      );
+      
+      console.log('Nouveau fichier créé avec succès');
+      
+      // 4. Supprimer l'ancien fichier
+      try {
+        await axios.delete(
+          `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/drives/${SHAREPOINT_DRIVE_ID}/items/${fileId}`,
+          { headers }
+        );
+        console.log('Ancien fichier supprimé avec succès');
+      } catch (deleteError) {
+        console.warn('Impossible de supprimer l\'ancien fichier:', deleteError);
+        // On continue même si la suppression échoue
+      }
+      
+      return {
+        newFileId: createResponse.data.id,
+        newDownloadUrl: createResponse.data['@microsoft.graph.downloadUrl']
+      };
+      
+    } catch (error: any) {
+      console.error('Erreur lors de la création de la nouvelle version du PDF:', error);
+      
+      if (error.response) {
+        const errorMessage = error.response.data?.error?.message || error.response.statusText;
+        throw new Error(`Erreur SharePoint (${error.response.status}): ${errorMessage}`);
+      } else if (error.request) {
+        throw new Error('Pas de réponse du serveur SharePoint. Vérifiez votre connexion internet.');
+      } else {
+        throw new Error(`Erreur lors de la création de la nouvelle version: ${error.message}`);
       }
     }
   }

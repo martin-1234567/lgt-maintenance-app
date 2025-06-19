@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Button } from '@mui/material';
+import EditablePDFViewer from './EditablePDFViewer';
 
 interface PDFFormViewerProps {
   url: string;
@@ -43,15 +44,22 @@ const PDFFormViewer: React.FC<PDFFormViewerProps> = ({
     };
   }, [url]);
 
+  // Extraire l'ID du fichier et du dossier depuis l'URL
+  const fileId = url ? url.split('/items/')[1]?.split('/')[0] : undefined;
+  const folderId = "01UIJT6YLQOURHAQCBSRB2FWB5PX6OZRJG"; // ID du dossier SharePoint
+
   return (
     <Box>
       {pdfBlobUrl ? (
-        <iframe
-          src={pdfBlobUrl}
-          title="Aperçu PDF"
-          width="100%"
-          height="800px"
-          style={{ border: 'none' }}
+        <EditablePDFViewer
+          url={pdfBlobUrl}
+          fileId={fileId}
+          folderId={folderId}
+          status={status as 'en cours' | 'terminé'}
+          onStatusChange={onStatusChange}
+          saving={saving}
+          onSave={onSave}
+          onBack={onBack}
         />
       ) : (
         <Box sx={{ textAlign: 'center', mt: 4 }}>Chargement du PDF...</Box>
